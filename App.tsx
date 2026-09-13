@@ -1,5 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { SafeAreaView, StyleSheet, Text, View } from "react-native";
+import {
+  Animated,
+  Pressable,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as Speech from "expo-speech";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -186,8 +194,25 @@ export default function App() {
       )}`
     : errorMsg ?? "Esperando señal GPS…";
 
-  // Diseño VERTICAL (la app se usa siempre en retrato): franja de mapa arriba,
-  // panel operativo compacto, y la lista de paradas ocupando la mayor parte.
+  // Diseño VERTICAL tipo mapa: el mapa ocupa toda la pantalla y la lista es un
+  // panel deslizable desde abajo (colapsado = mapa grande; desplegado = lista).
+  const { height: screenHeight } = useWindowDimensions();
+  const COLLAPSED_HEIGHT = 300; // altura del panel colapsado (controles visibles)
+  const expandedHeight = Math.round(screenHeight * 0.88);
+
+  const [sheetExpanded, setSheetExpanded] = useState(false);
+  const sheetHeight = useRef(new Animated.Value(COLLAPSED_HEIGHT)).current;
+
+  const toggleSheet = () => {
+    const target = sheetExpanded ? COLLAPSED_HEIGHT : expandedHeight;
+    Animated.timing(sheetHeight, {
+      toValue: target,
+      duration: 250,
+      useNativeDriver: false, // animamos 'height', no soportado por el driver nativo
+    }).start();
+    setSheetExpanded((v) => !v);
+  };
+
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar style="dark" />
@@ -198,40 +223,51 @@ export default function App() {
         </View>
       )}
 
-      {/* Mapa: franja superior */}
-      <View style={styles.mapWrap}>
-        <RouteMap
-          stops={ROUTE_STOPS}
-          packages={packages}
-          userCoords={coords}
-          currentIndex={currentIndex}
-        />
-      </View>
+      <View style={styles.container}>
+        {/* Mapa a pantalla completa (fondo) */}
+        <View style={styles.mapFill}>
+          <RouteMap
+            stops={ROUTE_STOPS}
+            packages={packages}
+            userCoords={coords}
+            currentIndex={currentIndex}
+          />
+        </View>
 
-      {/* Panel operativo compacto */}
-      <View style={styles.panelWrap}>
-        <DeliveryPanel
-          routeState={routeState}
-          distanceToNextPackage={distanceToNextPackage}
-          alertActive={alertActive}
-          gpsInfo={gpsInfo}
-          onDelivered={handleDelivered}
-          onNext={handleNext}
-          onPrev={handlePrev}
-          onNearest={handleNearest}
-        />
-      </View>
+        {/* Panel deslizable desde abajo */}
+        <Animated.View style={[styles.sheet, { height: sheetHeight }]}>
+          {/* Asa para desplegar/plegar */}
+          <Pressable style={styles.handle} onPress={toggleSheet}>
+            <View style={styles.grabber} />
+            <Text style={styles.handleText}>
+              {sheetExpanded ? "▼ Ver mapa" : "▲ Ver lista"}
+            </Text>
+          </Pressable>
 
-      {/* Lista de paradas: área principal */}
-      <View style={styles.listCol}>
-        <StopsList
-          stops={ROUTE_STOPS}
-          packages={packages}
-          currentIndex={currentIndex}
-          onSelectStop={setCurrentIndex}
-          onTogglePackage={handleTogglePackage}
-          onCyclePackageCount={handleCyclePackageCount}
-        />
+          {/* Controles operativos (siempre visibles) */}
+          <DeliveryPanel
+            routeState={routeState}
+            distanceToNextPackage={distanceToNextPackage}
+            alertActive={alertActive}
+            gpsInfo={gpsInfo}
+            onDelivered={handleDelivered}
+            onNext={handleNext}
+            onPrev={handlePrev}
+            onNearest={handleNearest}
+          />
+
+          {/* Lista de paradas (ocupa el resto del panel) */}
+          <View style={styles.listFill}>
+            <StopsList
+              stops={ROUTE_STOPS}
+              packages={packages}
+              currentIndex={currentIndex}
+              onSelectStop={setCurrentIndex}
+              onTogglePackage={handleTogglePackage}
+              onCyclePackageCount={handleCyclePackageCount}
+            />
+          </View>
+        </Animated.View>
       </View>
     </SafeAreaView>
   );
@@ -242,14 +278,50 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
-  mapWrap: {
-    flex: 1.1, // franja de mapa superior
+  container: {
+    flex: 1,
+    position: "relative",
   },
-  panelWrap: {
-    // sin flex: el panel compacto se ajusta a su contenido
+  mapFill: {
+    ...StyleSheet.absoluteFillObject, // el mapa ocupa toda la pantalla
   },
-  listCol: {
-    flex: 2.4, // la lista es el área principal
+  sheet: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    overflow: "hidden",
+    // sombra para separar del mapa
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 12,
+  },
+  handle: {
+    alignItems: "center",
+    paddingTop: 8,
+    paddingBottom: 4,
+    backgroundColor: "#fff",
+  },
+  grabber: {
+    width: 44,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: "#ced4da",
+    marginBottom: 4,
+  },
+  handleText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#868e96",
+    letterSpacing: 0.5,
+  },
+  listFill: {
+    flex: 1, // la lista ocupa el resto del panel
   },
   banner: {
     backgroundColor: "#c92a2a",
