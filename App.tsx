@@ -1,11 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as Speech from "expo-speech";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -192,11 +186,8 @@ export default function App() {
       )}`
     : errorMsg ?? "Esperando señal GPS…";
 
-  // En pantallas anchas (tablet/horizontal) la lista va al LATERAL (fila).
-  // En pantallas estrechas (móvil vertical) se apila debajo (columna).
-  const { width } = useWindowDimensions();
-  const isWide = width >= 600;
-
+  // Diseño VERTICAL (la app se usa siempre en retrato): franja de mapa arriba,
+  // panel operativo compacto, y la lista de paradas ocupando la mayor parte.
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar style="dark" />
@@ -207,43 +198,40 @@ export default function App() {
         </View>
       )}
 
-      <View style={[styles.body, isWide ? styles.bodyRow : styles.bodyCol]}>
-        {/* Zona operativa: mapa + panel */}
-        <View style={[styles.leftCol, !isWide && styles.leftColNarrow]}>
-          <View style={styles.mapWrap}>
-            <RouteMap
-              stops={ROUTE_STOPS}
-              packages={packages}
-              userCoords={coords}
-              currentIndex={currentIndex}
-            />
-          </View>
+      {/* Mapa: franja superior */}
+      <View style={styles.mapWrap}>
+        <RouteMap
+          stops={ROUTE_STOPS}
+          packages={packages}
+          userCoords={coords}
+          currentIndex={currentIndex}
+        />
+      </View>
 
-          <View style={styles.panelWrap}>
-            <DeliveryPanel
-              routeState={routeState}
-              distanceToNextPackage={distanceToNextPackage}
-              alertActive={alertActive}
-              gpsInfo={gpsInfo}
-              onDelivered={handleDelivered}
-              onNext={handleNext}
-              onPrev={handlePrev}
-              onNearest={handleNearest}
-            />
-          </View>
-        </View>
+      {/* Panel operativo compacto */}
+      <View style={styles.panelWrap}>
+        <DeliveryPanel
+          routeState={routeState}
+          distanceToNextPackage={distanceToNextPackage}
+          alertActive={alertActive}
+          gpsInfo={gpsInfo}
+          onDelivered={handleDelivered}
+          onNext={handleNext}
+          onPrev={handlePrev}
+          onNearest={handleNearest}
+        />
+      </View>
 
-        {/* Lista lateral de paradas con casillas para cargar paquetes */}
-        <View style={[styles.listCol, !isWide && styles.listColNarrow]}>
-          <StopsList
-            stops={ROUTE_STOPS}
-            packages={packages}
-            currentIndex={currentIndex}
-            onSelectStop={setCurrentIndex}
-            onTogglePackage={handleTogglePackage}
-            onCyclePackageCount={handleCyclePackageCount}
-          />
-        </View>
+      {/* Lista de paradas: área principal */}
+      <View style={styles.listCol}>
+        <StopsList
+          stops={ROUTE_STOPS}
+          packages={packages}
+          currentIndex={currentIndex}
+          onSelectStop={setCurrentIndex}
+          onTogglePackage={handleTogglePackage}
+          onCyclePackageCount={handleCyclePackageCount}
+        />
       </View>
     </SafeAreaView>
   );
@@ -254,32 +242,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
-  body: {
-    flex: 1,
-  },
-  bodyRow: {
-    flexDirection: "row", // pantalla ancha: lista al lateral
-  },
-  bodyCol: {
-    flexDirection: "column", // pantalla estrecha: lista debajo
-  },
-  leftCol: {
-    flex: 1.3, // ancho: zona mapa + panel a la izquierda
-  },
-  leftColNarrow: {
-    flex: 0.85, // móvil: el mapa+panel ocupan menos; la lista manda
-  },
-  listCol: {
-    flex: 1, // ancho: lista al lateral
-  },
-  listColNarrow: {
-    flex: 1.3, // móvil: la lista es el área principal
-  },
   mapWrap: {
-    flex: 1, // el mapa llena la zona operativa menos el panel
+    flex: 1.1, // franja de mapa superior
   },
   panelWrap: {
     // sin flex: el panel compacto se ajusta a su contenido
+  },
+  listCol: {
+    flex: 2.4, // la lista es el área principal
   },
   banner: {
     backgroundColor: "#c92a2a",
