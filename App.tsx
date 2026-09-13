@@ -209,7 +209,7 @@ export default function App() {
 
       <View style={[styles.body, isWide ? styles.bodyRow : styles.bodyCol]}>
         {/* Zona operativa: mapa + panel */}
-        <View style={styles.leftCol}>
+        <View style={[styles.leftCol, !isWide && styles.leftColNarrow]}>
           <View style={styles.mapWrap}>
             <RouteMap
               stops={ROUTE_STOPS}
@@ -234,7 +234,7 @@ export default function App() {
         </View>
 
         {/* Lista lateral de paradas con casillas para cargar paquetes */}
-        <View style={styles.listCol}>
+        <View style={[styles.listCol, !isWide && styles.listColNarrow]}>
           <StopsList
             stops={ROUTE_STOPS}
             packages={packages}
@@ -264,16 +264,22 @@ const styles = StyleSheet.create({
     flexDirection: "column", // pantalla estrecha: lista debajo
   },
   leftCol: {
-    flex: 1.3, // zona mapa + panel (algo más grande)
+    flex: 1.3, // ancho: zona mapa + panel a la izquierda
+  },
+  leftColNarrow: {
+    flex: 0.85, // móvil: el mapa+panel ocupan menos; la lista manda
   },
   listCol: {
-    flex: 1, // lista lateral
+    flex: 1, // ancho: lista al lateral
+  },
+  listColNarrow: {
+    flex: 1.3, // móvil: la lista es el área principal
   },
   mapWrap: {
-    flex: 1, // ~mitad superior de la zona operativa
+    flex: 1, // el mapa llena la zona operativa menos el panel
   },
   panelWrap: {
-    flex: 1, // ~mitad inferior de la zona operativa
+    // sin flex: el panel compacto se ajusta a su contenido
   },
   banner: {
     backgroundColor: "#c92a2a",

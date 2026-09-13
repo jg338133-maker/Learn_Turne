@@ -1,22 +1,15 @@
 import React from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { RouteState } from "../utils/routeLogic";
 import { formatDistance } from "../utils/distance";
 
 /**
- * Panel operativo (mitad inferior de la pantalla).
+ * Panel operativo COMPACTO.
  *
- * Pensado para usarse mientras repartes: texto grande, botones grandes,
- * mínima interacción. Muestra:
- *   - NEXT ROUTE STOP  (concepto de ruta)
- *   - NEXT PACKAGE     (concepto de paquete + distancia)
- *   - AFTER THAT       (el siguiente paquete)
- *   - Botones DELIVERED y NEXT
+ * El recordatorio de "próximo paquete" ya no ocupa una caja grande: vive en la
+ * lista (las direcciones con paquete salen en rojo). Aquí solo dejamos lo
+ * imprescindible para repartir: dónde estás, el botón ENTREGADO (que además
+ * indica el próximo paquete y su distancia) y la navegación por la ruta.
  */
 
 type Props = {
@@ -40,189 +33,140 @@ export default function DeliveryPanel({
   onPrev,
   onNearest,
 }: Props) {
-  const { currentStop, nextStop, nextPackage, followingPackage } = routeState;
+  const { currentStop, nextStop, nextPackage } = routeState;
 
   return (
     <View style={styles.panel}>
-      {/* Posición actual en la ruta */}
-      <Text style={styles.smallLabel}>CURRENT ROUTE POSITION</Text>
-      <Text style={styles.currentValue}>
-        {currentStop ? `Stop ${currentStop.order} · ${currentStop.address}` : "—"}
+      {/* Dos líneas de contexto muy compactas */}
+      <Text style={styles.line} numberOfLines={1}>
+        <Text style={styles.tag}>AHORA </Text>
+        {currentStop ? `${currentStop.order} · ${currentStop.address}` : "—"}
+      </Text>
+      <Text style={styles.line} numberOfLines={1}>
+        <Text style={styles.tag}>SIGUIENTE </Text>
+        {nextStop ? `${nextStop.order} · ${nextStop.address}` : "Fin de la ruta"}
       </Text>
 
-      {/* Siguiente parada de la ruta */}
-      <Text style={styles.smallLabel}>NEXT ROUTE STOP</Text>
-      <Text style={styles.value}>
-        {nextStop ? `Stop ${nextStop.order} · ${nextStop.address}` : "Fin de la ruta"}
-      </Text>
-
-      {/* Próximo paquete: destacado */}
-      <View style={[styles.packageBox, alertActive && styles.packageBoxAlert]}>
-        <Text style={styles.smallLabel}>NEXT PACKAGE</Text>
-        {nextPackage ? (
-          <>
-            <Text style={styles.packageValue}>
-              Stop {nextPackage.stop.order} · {nextPackage.stop.address}
-            </Text>
-            <Text style={styles.packageCount}>
-              {nextPackage.pkg.packageCount} PAQUETE
-              {nextPackage.pkg.packageCount > 1 ? "S" : ""}
-            </Text>
-            <Text style={styles.distance}>
-              {formatDistance(distanceToNextPackage)}
-            </Text>
-            {alertActive && (
-              <Text style={styles.alertText}>⚠️ ¡PAQUETE CERCA!</Text>
-            )}
-          </>
-        ) : (
-          <Text style={styles.packageValue}>No quedan paquetes 🎉</Text>
-        )}
-      </View>
-
-      {/* El siguiente paquete después */}
-      <Text style={styles.smallLabel}>AFTER THAT</Text>
-      <Text style={styles.value}>
-        {followingPackage
-          ? `Stop ${followingPackage.stop.order} · ${followingPackage.stop.address} · ${followingPackage.pkg.packageCount} paquete${
-              followingPackage.pkg.packageCount > 1 ? "s" : ""
-            }`
-          : "—"}
-      </Text>
-
-      {/* Botón grande de entrega */}
+      {/* Botón de entrega: incorpora el recordatorio del próximo paquete */}
       <TouchableOpacity
-        style={[styles.deliveredButton, !nextPackage && styles.buttonDisabled]}
+        style={[
+          styles.deliveredButton,
+          alertActive && styles.deliveredButtonAlert,
+          !nextPackage && styles.buttonDisabled,
+        ]}
         onPress={onDelivered}
         disabled={!nextPackage}
       >
-        <Text style={styles.buttonText}>DELIVERED</Text>
+        {nextPackage ? (
+          <>
+            <Text style={styles.buttonText}>ENTREGADO</Text>
+            <Text style={styles.buttonSub} numberOfLines={1}>
+              📦 {nextPackage.stop.order} · {nextPackage.stop.address} ·{" "}
+              {formatDistance(distanceToNextPackage)}
+              {alertActive ? "  ⚠️ CERCA" : ""}
+            </Text>
+          </>
+        ) : (
+          <Text style={styles.buttonText}>SIN PAQUETES 🎉</Text>
+        )}
       </TouchableOpacity>
 
       {/* Controles de navegación por la ruta */}
       <View style={styles.buttonRow}>
-        <TouchableOpacity style={[styles.navButton]} onPress={onPrev}>
-          <Text style={styles.navButtonText}>◀ ATRÁS</Text>
+        <TouchableOpacity style={styles.navButton} onPress={onPrev}>
+          <Text style={styles.navButtonText}>◀</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.navButton, styles.nearestButton]} onPress={onNearest}>
+        <TouchableOpacity
+          style={[styles.navButton, styles.nearestButton]}
+          onPress={onNearest}
+        >
           <Text style={styles.navButtonText}>📍 CERCANA</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.navButton]} onPress={onNext}>
-          <Text style={styles.navButtonText}>NEXT ▶</Text>
+        <TouchableOpacity style={styles.navButton} onPress={onNext}>
+          <Text style={styles.navButtonText}>▶</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Info GPS discreta abajo */}
-      <Text style={styles.gpsInfo}>{gpsInfo}</Text>
+      <Text style={styles.gpsInfo} numberOfLines={1}>
+        {gpsInfo}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   panel: {
-    flex: 1,
-    paddingHorizontal: 18,
-    paddingTop: 12,
+    paddingHorizontal: 14,
+    paddingTop: 8,
     paddingBottom: 8,
     backgroundColor: "#ffffff",
   },
-  smallLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#888",
-    marginTop: 8,
-    letterSpacing: 1,
+  line: {
+    fontSize: 15,
+    color: "#343a40",
+    marginBottom: 2,
   },
-  currentValue: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-  },
-  value: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#222",
-  },
-  packageBox: {
-    marginTop: 10,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: "#fff4e6",
-    borderWidth: 2,
-    borderColor: "#ffb266",
-  },
-  packageBoxAlert: {
-    backgroundColor: "#ffe0e0",
-    borderColor: "#ff4d4d",
-  },
-  packageValue: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#111",
-  },
-  packageCount: {
-    fontSize: 26,
+  tag: {
+    fontSize: 12,
     fontWeight: "800",
-    color: "#d9480f",
-    marginTop: 2,
-  },
-  distance: {
-    fontSize: 34,
-    fontWeight: "800",
-    color: "#111",
-    marginTop: 2,
-  },
-  alertText: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#c92a2a",
-    marginTop: 4,
+    color: "#adb5bd",
+    letterSpacing: 0.5,
   },
   deliveredButton: {
-    marginTop: 14,
-    paddingVertical: 22,
-    borderRadius: 14,
+    marginTop: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#2f9e44",
   },
+  deliveredButtonAlert: {
+    backgroundColor: "#e8590c",
+  },
+  buttonDisabled: {
+    backgroundColor: "#adb5bd",
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
+  buttonSub: {
+    color: "#eaffef",
+    fontSize: 13,
+    fontWeight: "700",
+    marginTop: 2,
+  },
   buttonRow: {
     flexDirection: "row",
-    marginTop: 10,
-    gap: 10,
+    marginTop: 8,
+    gap: 8,
   },
   navButton: {
     flex: 1,
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 12,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#495057",
   },
   nearestButton: {
+    flex: 2,
     backgroundColor: "#1c7ed6",
-  },
-  buttonDisabled: {
-    opacity: 0.4,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 22,
-    fontWeight: "800",
-    letterSpacing: 1,
   },
   navButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "800",
     letterSpacing: 0.5,
   },
   gpsInfo: {
-    fontSize: 12,
-    color: "#aaa",
-    marginTop: 10,
+    fontSize: 11,
+    color: "#ced4da",
+    marginTop: 6,
     textAlign: "center",
   },
 });

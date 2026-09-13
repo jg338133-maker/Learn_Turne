@@ -60,6 +60,7 @@ export default function StopsList({
           const pkg = pkgById.get(item.id);
           const hasPkg = !!pkg;
           const delivered = !!pkg?.delivered;
+          const activePkg = hasPkg && !delivered; // paquete pendiente → rojo
           const isCurrent = index === currentIndex;
 
           return (
@@ -78,7 +79,11 @@ export default function StopsList({
               >
                 <Text style={styles.order}>{item.order}</Text>
                 <Text
-                  style={[styles.address, delivered && styles.addressDelivered]}
+                  style={[
+                    styles.address,
+                    activePkg && styles.addressPackage,
+                    delivered && styles.addressDelivered,
+                  ]}
                   numberOfLines={1}
                 >
                   {item.address}
@@ -169,6 +174,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#212529",
+  },
+  addressPackage: {
+    color: "#e03131",
+    fontWeight: "800",
   },
   addressDelivered: {
     color: "#adb5bd",
