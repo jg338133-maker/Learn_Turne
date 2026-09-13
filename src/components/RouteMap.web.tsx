@@ -69,7 +69,17 @@ export default function RouteMap({
     markersLayer.current = L.layerGroup().addTo(map);
     mapRef.current = map;
 
+    // Leaflet no carga teselas si el contenedor tenía tamaño 0 al iniciar
+    // (habitual en layouts flex). Forzamos un recálculo cuando ya tiene tamaño
+    // y ante cualquier cambio de dimensiones.
+    const invalidate = () => map.invalidateSize();
+    const t = setTimeout(invalidate, 100);
+    const ro = new ResizeObserver(invalidate);
+    ro.observe(containerRef.current);
+
     return () => {
+      clearTimeout(t);
+      ro.disconnect();
       map.remove();
       mapRef.current = null;
     };
