@@ -283,7 +283,12 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   mapFill: {
-    ...StyleSheet.absoluteFillObject, // el mapa ocupa toda la pantalla
+    // el mapa ocupa toda la pantalla (fondo)
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   sheet: {
     position: "absolute",
