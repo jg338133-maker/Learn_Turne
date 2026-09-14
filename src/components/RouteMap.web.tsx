@@ -106,6 +106,13 @@ export default function RouteMap({
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     mapRef.current = map;
 
+    // MapLibre no pinta si el contenedor tenía tamaño 0 al crearse (habitual en
+    // layouts flex). Forzamos resize cuando ya tiene tamaño y ante cambios.
+    const doResize = () => map.resize();
+    const resizeTimer = setTimeout(doResize, 100);
+    const ro = new ResizeObserver(doResize);
+    ro.observe(containerRef.current);
+
     map.on("load", () => {
       // Edificios en 3D (esquema OpenMapTiles: fuente "openmaptiles").
       try {
@@ -176,6 +183,8 @@ export default function RouteMap({
     });
 
     return () => {
+      clearTimeout(resizeTimer);
+      ro.disconnect();
       map.remove();
       mapRef.current = null;
       readyRef.current = false;
