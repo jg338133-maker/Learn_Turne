@@ -1,9 +1,12 @@
 import React, { useEffect, useRef } from "react";
-import maplibregl from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
+import type * as ML from "maplibre-gl";
 import { Coords, PackageStop, RouteStop } from "../types";
 import { hasActivePackage } from "../utils/routeLogic";
 import { snapToPolyline } from "../utils/geo";
+
+// MapLibre se carga desde CDN (ver index.html) porque el worker no funciona
+// empaquetado con Metro. Aquí solo usamos los tipos; el runtime viene de window.
+const maplibregl: typeof ML = (globalThis as any).maplibregl;
 
 /**
  * Versión WEB del mapa en 3D con MapLibre GL (rama experimental).
@@ -76,9 +79,9 @@ export default function RouteMap({
   currentIndex,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
+  const mapRef = useRef<ML.Map | null>(null);
   const readyRef = useRef(false);
-  const arrow = useRef<maplibregl.Marker | null>(null);
+  const arrow = useRef<ML.Marker | null>(null);
   const routeLine = useRef<Coords[]>([]);
 
   routeLine.current = stops.map((s) => ({
@@ -184,7 +187,7 @@ export default function RouteMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !readyRef.current) return;
-    const src = map.getSource("stops") as maplibregl.GeoJSONSource | undefined;
+    const src = map.getSource("stops") as ML.GeoJSONSource | undefined;
     src?.setData(stopsGeoJSON(stops, packages, currentIndex));
   }, [stops, packages, currentIndex]);
 
