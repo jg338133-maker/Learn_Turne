@@ -16,6 +16,7 @@ import RouteMap from "./src/components/RouteMap";
 import DeliveryPanel from "./src/components/DeliveryPanel";
 import StopsList from "./src/components/StopsList";
 import { useLocation } from "./src/hooks/useLocation";
+import { useNavigation } from "./src/hooks/useNavigation";
 import { ROUTE_STOPS } from "./src/data/testRoute";
 import { TEST_PACKAGES } from "./src/data/testPackages";
 import { PackageStop } from "./src/types";
@@ -94,6 +95,9 @@ export default function App() {
   const alertActive =
     distanceToNextPackage !== null &&
     distanceToNextPackage <= PACKAGE_ALERT_DISTANCE;
+
+  // Navegación por calles hasta la próxima parada (se recalcula al moverte).
+  const { route: navRoute } = useNavigation(coords, routeState.nextStop);
 
   // --- Avance automático de la ruta (ROUTE ORDER + GPS, con ventana) ---
   useEffect(() => {
@@ -231,6 +235,7 @@ export default function App() {
             packages={packages}
             userCoords={coords}
             currentIndex={currentIndex}
+            navRoute={navRoute?.coords ?? null}
           />
         </View>
 
@@ -249,6 +254,8 @@ export default function App() {
             routeState={routeState}
             distanceToNextPackage={distanceToNextPackage}
             alertActive={alertActive}
+            navDistance={navRoute?.distance ?? null}
+            navDuration={navRoute?.duration ?? null}
             gpsInfo={gpsInfo}
             onDelivered={handleDelivered}
             onNext={handleNext}

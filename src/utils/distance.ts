@@ -29,3 +29,14 @@ export function formatDistance(meters: number | null): string {
   if (meters < 1000) return `${Math.round(meters)} m`;
   return `${(meters / 1000).toFixed(1)} km`;
 }
+
+/** Formatea segundos como duración legible: "<1 min", "5 min", "1 h 10 min". */
+export function formatDuration(seconds: number | null): string {
+  if (seconds === null || Number.isNaN(seconds)) return "--";
+  const min = Math.round(seconds / 60);
+  if (min < 1) return "<1 min";
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `${h} h ${m} min`;
+}

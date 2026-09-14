@@ -19,6 +19,7 @@ type Props = {
   packages: PackageStop[];
   userCoords: Coords | null;
   currentIndex: number;
+  navRoute?: Coords[] | null; // ruta por calles hasta la próxima parada
 };
 
 /** Mismo criterio de color que el mapa nativo. Devuelve un color CSS. */
@@ -40,11 +41,14 @@ export default function RouteMap({
   packages,
   userCoords,
   currentIndex,
+  navRoute,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersLayer = useRef<L.LayerGroup | null>(null);
   const userMarker = useRef<L.CircleMarker | null>(null);
+  const navLine = useRef<L.Polyline | null>(null);
+  const navDestKey = useRef<string | null>(null);
 
   // --- Inicializar el mapa una sola vez ---
   useEffect(() => {
@@ -135,13 +139,47 @@ export default function RouteMap({
     }
   }, [userCoords]);
 
-  // --- Centrar el mapa en la parada seleccionada (al tocar una dirección) ---
+  // --- Ruta de navegación por calles (se actualiza al moverte) ---
   useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (navLine.current) {
+      navLine.current.remove();
+      navLine.current = null;
+    }
+
+    if (navRoute && navRoute.length > 1) {
+      navLine.current = L.polyline(
+        navRoute.map((c) => [c.latitude, c.longitude] as [number, number]),
+        { color: "#7048e8", weight: 6, opacity: 0.9 }
+      ).addTo(map);
+
+      // Solo reencuadramos cuando cambia el DESTINO (no en cada avance), para
+      // que el mapa no dé saltos mientras te mueves.
+      const end = navRoute[navRoute.length - 1];
+      const key = `${end.latitude},${end.longitude}`;
+      if (navDestKey.current !== key) {
+        navDestKey.current = key;
+        map.fitBounds(navLine.current.getBounds(), {
+          padding: [40, 40],
+          maxZoom: 17,
+        });
+      }
+    } else {
+      navDestKey.current = null;
+    }
+  }, [navRoute]);
+
+  // --- Centrar el mapa en la parada seleccionada (al tocar una dirección) ---
+  // En modo navegación manda la ruta; no reposicionamos por selección.
+  useEffect(() => {
+    if (navRoute && navRoute.length > 1) return;
     const map = mapRef.current;
     const stop = stops[currentIndex];
     if (!map || !stop) return;
     map.setView([stop.latitude, stop.longitude], 17, { animate: true });
-  }, [currentIndex, stops]);
+  }, [currentIndex, stops, navRoute]);
 
   return (
     <div

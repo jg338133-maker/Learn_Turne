@@ -20,6 +20,7 @@ type Props = {
   packages: PackageStop[];
   userCoords: Coords | null;
   currentIndex: number;
+  navRoute?: Coords[] | null; // ruta por calles hasta la próxima parada
 };
 
 /** Color del pin según el estado de la parada. Lógica visual sencilla. */
@@ -41,6 +42,7 @@ export default function RouteMap({
   packages,
   userCoords,
   currentIndex,
+  navRoute,
 }: Props) {
   const mapRef = useRef<MapView>(null);
 
@@ -57,6 +59,7 @@ export default function RouteMap({
   // Al cambiar la parada seleccionada (p. ej. al tocar una dirección en la
   // lista, o al avanzar de parada), centramos y acercamos el mapa a ella.
   useEffect(() => {
+    if (navRoute && navRoute.length > 1) return; // en navegación manda la ruta
     const stop = stops[currentIndex];
     if (!stop) return;
     mapRef.current?.animateToRegion(
@@ -68,7 +71,7 @@ export default function RouteMap({
       },
       400
     );
-  }, [currentIndex, stops]);
+  }, [currentIndex, stops, navRoute]);
 
   // Coordenadas ordenadas para la Polyline.
   const routeLine = stops.map((s) => ({
@@ -92,6 +95,15 @@ export default function RouteMap({
           strokeColor="#1e90ff"
           strokeWidth={4}
         />
+
+        {/* Ruta de navegación por calles hasta la próxima parada */}
+        {navRoute && navRoute.length > 1 && (
+          <Polyline
+            coordinates={navRoute}
+            strokeColor="#7048e8"
+            strokeWidth={6}
+          />
+        )}
 
         {/* Un marcador por parada */}
         {stops.map((stop, index) => {
