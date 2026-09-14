@@ -180,9 +180,15 @@ export default function RouteMap({
       });
 
       readyRef.current = true;
-      // Ajuste de tamaño ya con el estilo cargado (evita el lienzo en blanco).
+      // El lienzo se dimensiona bien pero MapLibre a veces no hace el primer
+      // repintado hasta un evento de resize de ventana. Lo forzamos.
       map.resize();
-      requestAnimationFrame(() => map.resize());
+      map.triggerRepaint();
+      setTimeout(() => {
+        map.resize();
+        window.dispatchEvent(new Event("resize"));
+        map.triggerRepaint();
+      }, 250);
     });
 
     return () => {
