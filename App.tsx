@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
+  Linking,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -16,7 +17,6 @@ import RouteMap from "./src/components/RouteMap";
 import DeliveryPanel from "./src/components/DeliveryPanel";
 import StopsList from "./src/components/StopsList";
 import { useLocation } from "./src/hooks/useLocation";
-import { useNavigation } from "./src/hooks/useNavigation";
 import { ROUTE_STOPS } from "./src/data/testRoute";
 import { TEST_PACKAGES } from "./src/data/testPackages";
 import { PackageStop } from "./src/types";
@@ -96,8 +96,11 @@ export default function App() {
     distanceToNextPackage !== null &&
     distanceToNextPackage <= PACKAGE_ALERT_DISTANCE;
 
-  // Navegación por calles hasta la próxima parada (se recalcula al moverte).
-  const { route: navRoute } = useNavigation(coords, routeState.nextStop);
+  // Distancia (línea recta, sin servicios externos) a la próxima parada.
+  const nextStopDistance = useMemo(() => {
+    if (!coords || !routeState.nextStop) return null;
+    return haversineDistance(coords, routeState.nextStop);
+  }, [coords, routeState.nextStop]);
 
   // --- Avance automático de la ruta (ROUTE ORDER + GPS, con ventana) ---
   useEffect(() => {
@@ -189,6 +192,13 @@ export default function App() {
     );
   };
 
+  // --- Tocar una dirección: abrir Google Maps con esa parada como destino ---
+  const handleOpenMaps = (stop: (typeof ROUTE_STOPS)[number]) => {
+    const dest = `${stop.latitude},${stop.longitude}`;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=walking`;
+    Linking.openURL(url).catch(() => {});
+  };
+
   // Texto informativo de GPS.
   const gpsInfo = coords
     ? `GPS: ${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}` +
@@ -235,7 +245,6 @@ export default function App() {
             packages={packages}
             userCoords={coords}
             currentIndex={currentIndex}
-            navRoute={navRoute?.coords ?? null}
           />
         </View>
 
@@ -254,8 +263,7 @@ export default function App() {
             routeState={routeState}
             distanceToNextPackage={distanceToNextPackage}
             alertActive={alertActive}
-            navDistance={navRoute?.distance ?? null}
-            navDuration={navRoute?.duration ?? null}
+            nextStopDistance={nextStopDistance}
             gpsInfo={gpsInfo}
             onDelivered={handleDelivered}
             onNext={handleNext}
@@ -272,6 +280,7 @@ export default function App() {
               onSelectStop={setCurrentIndex}
               onTogglePackage={handleTogglePackage}
               onCyclePackageCount={handleCyclePackageCount}
+              onOpenMaps={handleOpenMaps}
             />
           </View>
         </Animated.View>

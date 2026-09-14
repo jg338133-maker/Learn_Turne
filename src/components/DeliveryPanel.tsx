@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { RouteState } from "../utils/routeLogic";
-import { formatDistance, formatDuration } from "../utils/distance";
+import { formatDistance } from "../utils/distance";
 
 /**
  * Panel operativo COMPACTO.
@@ -16,8 +16,7 @@ type Props = {
   routeState: RouteState;
   distanceToNextPackage: number | null;
   alertActive: boolean; // true cuando estás cerca del próximo paquete
-  navDistance: number | null; // distancia por calles a la próxima parada (m)
-  navDuration: number | null; // tiempo estimado a la próxima parada (s)
+  nextStopDistance: number | null; // distancia en línea recta a la próxima parada (m)
   gpsInfo: string;
   onDelivered: () => void;
   onNext: () => void;
@@ -29,8 +28,7 @@ export default function DeliveryPanel({
   routeState,
   distanceToNextPackage,
   alertActive,
-  navDistance,
-  navDuration,
+  nextStopDistance,
   gpsInfo,
   onDelivered,
   onNext,
@@ -38,7 +36,7 @@ export default function DeliveryPanel({
   onNearest,
 }: Props) {
   const { currentStop, nextStop, nextPackage } = routeState;
-  const hasNav = navDistance !== null;
+  const hasNav = nextStopDistance !== null;
 
   return (
     <View style={styles.panel}>
@@ -52,10 +50,10 @@ export default function DeliveryPanel({
         {nextStop ? `${nextStop.order} · ${nextStop.address}` : "Fin de la ruta"}
       </Text>
 
-      {/* Navegación en vivo hasta la próxima parada (se actualiza al moverte) */}
+      {/* Distancia a la próxima parada (se actualiza al moverte) */}
       {hasNav && nextStop && (
         <Text style={styles.navLine} numberOfLines={1}>
-          🧭 {formatDistance(navDistance)} · {formatDuration(navDuration)}
+          🧭 {formatDistance(nextStopDistance)} a la siguiente parada
         </Text>
       )}
 

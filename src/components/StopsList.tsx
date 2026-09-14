@@ -1,22 +1,24 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   FlatList,
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { PackageStop, RouteStop } from "../types";
 
 /**
- * Lista LATERAL de todas las paradas de la ruta (scrollable).
+ * Lista de paradas con buscador.
  *
  * Cada fila permite:
- *   - Tocar la DIRECCIÓN  -> selecciona esa parada (la marca como actual).
- *   - Tocar la CASILLA    -> carga/quita un paquete en esa parada.
- *   - Tocar el CONTADOR   -> aumenta la cantidad (1 -> 2 -> 3 -> 1) si hay paquete.
+ *   - Tocar el NÚMERO   -> centra esa parada en el mapa de la app.
+ *   - Tocar la DIRECCIÓN -> abre Google Maps con esa parada como destino.
+ *   - Tocar la CASILLA   -> carga/quita un paquete (la dirección se pone roja).
+ *   - Tocar el CONTADOR  -> aumenta la cantidad (1 → 2 → 3 → 1).
  *
- * Así los paquetes del día se "cargan" a mano desde la app, sin editar ficheros.
+ * El buscador filtra por dirección sin perder la numeración original.
  */
 
 type Props = {
@@ -26,6 +28,7 @@ type Props = {
   onSelectStop: (index: number) => void;
   onTogglePackage: (stopId: number) => void;
   onCyclePackageCount: (stopId: number) => void;
+  onOpenMaps: (stop: RouteStop) => void;
 };
 
 export default function StopsList({
@@ -35,29 +38,56 @@ export default function StopsList({
   onSelectStop,
   onTogglePackage,
   onCyclePackageCount,
+  onOpenMaps,
 }: Props) {
-  // Mapa rápido stopId -> PackageStop para no recorrer el array en cada fila.
+  const [query, setQuery] = useState("");
+
+  // Mapa rápido stopId -> PackageStop.
   const pkgById = new Map<number, PackageStop>();
   packages.forEach((p) => pkgById.set(p.routeStopId, p));
 
   const packagesLoaded = packages.length;
+
+  // Filtramos manteniendo el índice ORIGINAL de cada parada.
+  const q = query.trim().toLowerCase();
+  const data = stops
+    .map((stop, index) => ({ stop, index }))
+    .filter(({ stop }) =>
+      q ? stop.address.toLowerCase().includes(q) : true
+    );
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>PARADAS</Text>
         <Text style={styles.headerSub}>
-          {stops.length} · 📦 {packagesLoaded}
+          {q ? `${data.length}/${stops.length}` : stops.length} · 📦{" "}
+          {packagesLoaded}
         </Text>
       </View>
 
+      {/* Buscador */}
+      <View style={styles.searchWrap}>
+        <TextInput
+          style={styles.search}
+          placeholder="Buscar dirección…"
+          placeholderTextColor="#adb5bd"
+          value={query}
+          onChangeText={setQuery}
+          autoCorrect={false}
+          clearButtonMode="while-editing"
+        />
+      </View>
+
       <FlatList
-        data={stops}
-        keyExtractor={(s) => String(s.id)}
+        data={data}
+        keyExtractor={(item) => String(item.stop.id)}
         initialNumToRender={20}
         windowSize={11}
-        renderItem={({ item, index }) => {
-          const pkg = pkgById.get(item.id);
+        keyboardShouldPersistTaps="handled"
+        renderItem={({ item }) => {
+          const { stop, index } = item;
+          const pkg = pkgById.get(stop.id);
           const hasPkg = !!pkg;
           const delivered = !!pkg?.delivered;
           const activePkg = hasPkg && !delivered; // paquete pendiente → rojo
@@ -71,13 +101,21 @@ export default function StopsList({
                 delivered && styles.rowDelivered,
               ]}
             >
-              {/* Dirección: tocar = seleccionar parada */}
+              {/* Número: centra la parada en el mapa de la app */}
+              <Pressable
+                style={styles.orderArea}
+                onPress={() => onSelectStop(index)}
+                hitSlop={6}
+              >
+                <Text style={styles.order}>{stop.order}</Text>
+              </Pressable>
+
+              {/* Dirección: abre Google Maps con el destino puesto */}
               <Pressable
                 style={styles.addressArea}
-                onPress={() => onSelectStop(index)}
+                onPress={() => onOpenMaps(stop)}
                 hitSlop={4}
               >
-                <Text style={styles.order}>{item.order}</Text>
                 <Text
                   style={[
                     styles.address,
@@ -86,25 +124,25 @@ export default function StopsList({
                   ]}
                   numberOfLines={1}
                 >
-                  {item.address}
+                  {stop.address}
                 </Text>
               </Pressable>
 
-              {/* Contador de paquetes: tocar = subir cantidad (solo si hay paquete) */}
+              {/* Contador de paquetes (solo si hay paquete) */}
               {hasPkg && (
                 <Pressable
                   style={styles.countBadge}
-                  onPress={() => onCyclePackageCount(item.id)}
+                  onPress={() => onCyclePackageCount(stop.id)}
                   hitSlop={4}
                 >
                   <Text style={styles.countText}>×{pkg!.packageCount}</Text>
                 </Pressable>
               )}
 
-              {/* Casilla: tocar = cargar/quitar paquete */}
+              {/* Casilla: cargar/quitar paquete */}
               <Pressable
                 style={[styles.checkbox, hasPkg && styles.checkboxOn]}
-                onPress={() => onTogglePackage(item.id)}
+                onPress={() => onTogglePackage(stop.id)}
                 hitSlop={8}
               >
                 {hasPkg && <Text style={styles.checkMark}>✓</Text>}
@@ -121,8 +159,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f8f9fa",
-    borderLeftWidth: 1,
-    borderLeftColor: "#dee2e6",
   },
   header: {
     flexDirection: "row",
@@ -143,6 +179,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
+  searchWrap: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: "#f1f3f5",
+    borderBottomWidth: 1,
+    borderBottomColor: "#dee2e6",
+  },
+  search: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#dee2e6",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 16,
+    color: "#212529",
+  },
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -158,22 +211,21 @@ const styles = StyleSheet.create({
   rowDelivered: {
     backgroundColor: "#ebfbee",
   },
-  addressArea: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
+  orderArea: {
+    width: 38,
   },
   order: {
-    width: 34,
     fontSize: 13,
     fontWeight: "800",
     color: "#868e96",
   },
-  address: {
+  addressArea: {
     flex: 1,
+  },
+  address: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#212529",
+    color: "#1c7ed6", // azul: indica que es tocable (abre Google Maps)
   },
   addressPackage: {
     color: "#e03131",

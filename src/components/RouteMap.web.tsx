@@ -3,15 +3,14 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Coords, PackageStop, RouteStop } from "../types";
 import { hasActivePackage } from "../utils/routeLogic";
+import { snapToPolyline } from "../utils/geo";
 
 /**
- * Versión WEB del mapa (Expo elige este archivo .web.tsx automáticamente).
+ * Versión WEB del mapa (Leaflet + OpenStreetMap, gratis y sin API key).
  *
- * Usa Leaflet + OpenStreetMap (gratis, sin API key). Dibuja la ruta como una
- * línea, cada parada como un círculo de color según su estado, y la posición
- * del usuario como un círculo azul.
- *
- * La versión nativa (react-native-maps) sigue en RouteMap.tsx para el móvil.
+ * - Dibuja la línea de la ruta y cada parada como círculo de color.
+ * - Tu posición se muestra como una FLECHA que se desliza sobre la línea azul
+ *   (proyectamos el GPS sobre la ruta y la orientamos en el sentido de avance).
  */
 
 type Props = {
@@ -19,7 +18,6 @@ type Props = {
   packages: PackageStop[];
   userCoords: Coords | null;
   currentIndex: number;
-  navRoute?: Coords[] | null; // ruta por calles hasta la próxima parada
 };
 
 /** Mismo criterio de color que el mapa nativo. Devuelve un color CSS. */
@@ -36,19 +34,40 @@ function markerColor(
   return "#868e96"; // pendiente → gris
 }
 
+/** Icono de flecha (apunta al norte por defecto; se rota con `bearing`). */
+function arrowIcon(bearing: number): L.DivIcon {
+  const html =
+    `<div style="transform: rotate(${bearing}deg); width:34px; height:34px; ` +
+    `display:flex; align-items:center; justify-content:center;">` +
+    `<svg width="32" height="32" viewBox="0 0 24 24">` +
+    `<circle cx="12" cy="12" r="11" fill="#1c7ed6" stroke="#ffffff" stroke-width="2"/>` +
+    `<path d="M12 4.5 L17.5 18 L12 14.5 L6.5 18 Z" fill="#ffffff"/>` +
+    `</svg></div>`;
+  return L.divIcon({
+    html,
+    className: "",
+    iconSize: [34, 34],
+    iconAnchor: [17, 17],
+  });
+}
+
 export default function RouteMap({
   stops,
   packages,
   userCoords,
   currentIndex,
-  navRoute,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersLayer = useRef<L.LayerGroup | null>(null);
-  const userMarker = useRef<L.CircleMarker | null>(null);
-  const navLine = useRef<L.Polyline | null>(null);
-  const navDestKey = useRef<string | null>(null);
+  const userArrow = useRef<L.Marker | null>(null);
+  const routeLine = useRef<Coords[]>([]);
+
+  // Coordenadas de la línea de ruta (estáticas).
+  routeLine.current = stops.map((s) => ({
+    latitude: s.latitude,
+    longitude: s.longitude,
+  }));
 
   // --- Inicializar el mapa una sola vez ---
   useEffect(() => {
@@ -64,7 +83,7 @@ export default function RouteMap({
       maxZoom: 19,
     }).addTo(map);
 
-    // Línea del recorrido (estática).
+    // Línea del recorrido.
     L.polyline(
       stops.map((s) => [s.latitude, s.longitude] as [number, number]),
       { color: "#1e90ff", weight: 4, opacity: 0.8 }
@@ -73,9 +92,7 @@ export default function RouteMap({
     markersLayer.current = L.layerGroup().addTo(map);
     mapRef.current = map;
 
-    // Leaflet no carga teselas si el contenedor tenía tamaño 0 al iniciar
-    // (habitual en layouts flex). Forzamos un recálculo cuando ya tiene tamaño
-    // y ante cualquier cambio de dimensiones.
+    // Leaflet no carga teselas si el contenedor tenía tamaño 0 al iniciar.
     const invalidate = () => map.invalidateSize();
     const t = setTimeout(invalidate, 100);
     const ro = new ResizeObserver(invalidate);
@@ -87,7 +104,6 @@ export default function RouteMap({
       map.remove();
       mapRef.current = null;
     };
-    // Solo al montar.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -118,68 +134,36 @@ export default function RouteMap({
     });
   }, [stops, packages, currentIndex]);
 
-  // --- Posición del usuario ---
+  // --- Flecha que se desliza sobre la línea azul ---
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !userCoords) return;
-    const latlng: [number, number] = [
-      userCoords.latitude,
-      userCoords.longitude,
-    ];
-    if (!userMarker.current) {
-      userMarker.current = L.circleMarker(latlng, {
-        radius: 8,
-        color: "#1c7ed6",
-        weight: 3,
-        fillColor: "#4dabf7",
-        fillOpacity: 1,
+
+    const snap = snapToPolyline(userCoords, routeLine.current);
+    const pos: [number, number] = snap
+      ? [snap.latitude, snap.longitude]
+      : [userCoords.latitude, userCoords.longitude];
+    const bearing = snap ? snap.bearing : 0;
+
+    if (!userArrow.current) {
+      userArrow.current = L.marker(pos, {
+        icon: arrowIcon(bearing),
+        interactive: false,
+        zIndexOffset: 1000,
       }).addTo(map);
     } else {
-      userMarker.current.setLatLng(latlng);
+      userArrow.current.setLatLng(pos);
+      userArrow.current.setIcon(arrowIcon(bearing));
     }
   }, [userCoords]);
 
-  // --- Ruta de navegación por calles (se actualiza al moverte) ---
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    if (navLine.current) {
-      navLine.current.remove();
-      navLine.current = null;
-    }
-
-    if (navRoute && navRoute.length > 1) {
-      navLine.current = L.polyline(
-        navRoute.map((c) => [c.latitude, c.longitude] as [number, number]),
-        { color: "#7048e8", weight: 6, opacity: 0.9 }
-      ).addTo(map);
-
-      // Solo reencuadramos cuando cambia el DESTINO (no en cada avance), para
-      // que el mapa no dé saltos mientras te mueves.
-      const end = navRoute[navRoute.length - 1];
-      const key = `${end.latitude},${end.longitude}`;
-      if (navDestKey.current !== key) {
-        navDestKey.current = key;
-        map.fitBounds(navLine.current.getBounds(), {
-          padding: [40, 40],
-          maxZoom: 17,
-        });
-      }
-    } else {
-      navDestKey.current = null;
-    }
-  }, [navRoute]);
-
   // --- Centrar el mapa en la parada seleccionada (al tocar una dirección) ---
-  // En modo navegación manda la ruta; no reposicionamos por selección.
   useEffect(() => {
-    if (navRoute && navRoute.length > 1) return;
     const map = mapRef.current;
     const stop = stops[currentIndex];
     if (!map || !stop) return;
     map.setView([stop.latitude, stop.longitude], 17, { animate: true });
-  }, [currentIndex, stops, navRoute]);
+  }, [currentIndex, stops]);
 
   return (
     <div
