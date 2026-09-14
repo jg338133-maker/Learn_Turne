@@ -54,6 +54,8 @@ function stopsGeoJSON(
       properties: {
         color: stopColor(index, currentIndex, stop, packages),
         radius: index === currentIndex ? 8 : 5,
+        order: stop.order,
+        address: stop.address,
       },
     })),
   };
@@ -177,6 +179,27 @@ export default function RouteMap({
           "circle-stroke-color": "#ffffff",
           "circle-stroke-width": 2,
         },
+      });
+
+      // Tocar una parada muestra un globo con su dirección.
+      map.on("click", "stops-circles", (e) => {
+        const f = e.features && e.features[0];
+        if (!f) return;
+        const p = f.properties as { order: number; address: string };
+        const coords = (f.geometry as GeoJSON.Point).coordinates as [
+          number,
+          number
+        ];
+        new maplibregl.Popup({ offset: 12 })
+          .setLngLat(coords)
+          .setHTML(`<b>Parada ${p.order}</b><br/>${p.address}`)
+          .addTo(map);
+      });
+      map.on("mouseenter", "stops-circles", () => {
+        map.getCanvas().style.cursor = "pointer";
+      });
+      map.on("mouseleave", "stops-circles", () => {
+        map.getCanvas().style.cursor = "";
       });
 
       readyRef.current = true;
