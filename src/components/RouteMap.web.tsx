@@ -180,6 +180,9 @@ export default function RouteMap({
       });
 
       readyRef.current = true;
+      // Ajuste de tamaño ya con el estilo cargado (evita el lienzo en blanco).
+      map.resize();
+      requestAnimationFrame(() => map.resize());
     });
 
     return () => {
