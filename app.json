@@ -27,7 +27,7 @@
       "bundler": "metro"
     },
     "experiments": {
-      "baseUrl": "/Learn_Turne"
+      "baseUrl": "/Learn_Turne/3d"
     },
     "plugins": [
       [

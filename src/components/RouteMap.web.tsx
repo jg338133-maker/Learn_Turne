@@ -1,16 +1,19 @@
 import React, { useEffect, useRef } from "react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { Coords, PackageStop, RouteStop } from "../types";
 import { hasActivePackage } from "../utils/routeLogic";
 import { snapToPolyline } from "../utils/geo";
 
 /**
- * Versión WEB del mapa (Leaflet + OpenStreetMap, gratis y sin API key).
+ * Versión WEB del mapa en 3D con MapLibre GL (rama experimental).
  *
- * - Dibuja la línea de la ruta y cada parada como círculo de color.
- * - Tu posición se muestra como una FLECHA que se desliza sobre la línea azul
- *   (proyectamos el GPS sobre la ruta y la orientamos en el sentido de avance).
+ * - Estilo vectorial gratuito de OpenFreeMap (sin API key).
+ * - Cámara inclinada + edificios en 3D (fill-extrusion).
+ * - Ruta como línea, paradas como círculos de color (capa de datos), y tu
+ *   posición como una flecha que se desliza sobre la línea.
+ *
+ * La versión nativa (react-native-maps) sigue en RouteMap.tsx.
  */
 
 type Props = {
@@ -20,35 +23,50 @@ type Props = {
   currentIndex: number;
 };
 
-/** Mismo criterio de color que el mapa nativo. Devuelve un color CSS. */
-function markerColor(
+const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
+
+function stopColor(
   index: number,
   currentIndex: number,
   stop: RouteStop,
   packages: PackageStop[]
 ): string {
-  if (hasActivePackage(stop.id, packages)) return "#e03131"; // paquete activo → rojo
-  if (index < currentIndex) return "#2f9e44"; // ya pasada → verde
+  if (hasActivePackage(stop.id, packages)) return "#e03131"; // paquete → rojo
+  if (index < currentIndex) return "#2f9e44"; // pasada → verde
   if (index === currentIndex) return "#1c7ed6"; // actual → azul
   if (index === currentIndex + 1) return "#f76707"; // siguiente → naranja
   return "#868e96"; // pendiente → gris
 }
 
-/** Icono de flecha (apunta al norte por defecto; se rota con `bearing`). */
-function arrowIcon(bearing: number): L.DivIcon {
-  const html =
-    `<div style="transform: rotate(${bearing}deg); width:34px; height:34px; ` +
-    `display:flex; align-items:center; justify-content:center;">` +
-    `<svg width="32" height="32" viewBox="0 0 24 24">` +
+function stopsGeoJSON(
+  stops: RouteStop[],
+  packages: PackageStop[],
+  currentIndex: number
+): GeoJSON.FeatureCollection {
+  return {
+    type: "FeatureCollection",
+    features: stops.map((stop, index) => ({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [stop.longitude, stop.latitude] },
+      properties: {
+        color: stopColor(index, currentIndex, stop, packages),
+        radius: index === currentIndex ? 8 : 5,
+      },
+    })),
+  };
+}
+
+/** Elemento HTML de la flecha (apunta al norte; se rota con setRotation). */
+function makeArrowEl(): HTMLDivElement {
+  const el = document.createElement("div");
+  el.style.width = "34px";
+  el.style.height = "34px";
+  el.innerHTML =
+    `<svg width="34" height="34" viewBox="0 0 24 24">` +
     `<circle cx="12" cy="12" r="11" fill="#1c7ed6" stroke="#ffffff" stroke-width="2"/>` +
     `<path d="M12 4.5 L17.5 18 L12 14.5 L6.5 18 Z" fill="#ffffff"/>` +
-    `</svg></div>`;
-  return L.divIcon({
-    html,
-    className: "",
-    iconSize: [34, 34],
-    iconAnchor: [17, 17],
-  });
+    `</svg>`;
+  return el;
 }
 
 export default function RouteMap({
@@ -58,12 +76,11 @@ export default function RouteMap({
   currentIndex,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const markersLayer = useRef<L.LayerGroup | null>(null);
-  const userArrow = useRef<L.Marker | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const readyRef = useRef(false);
+  const arrow = useRef<maplibregl.Marker | null>(null);
   const routeLine = useRef<Coords[]>([]);
 
-  // Coordenadas de la línea de ruta (estáticas).
   routeLine.current = stops.map((s) => ({
     latitude: s.latitude,
     longitude: s.longitude,
@@ -74,64 +91,101 @@ export default function RouteMap({
     if (mapRef.current || !containerRef.current) return;
 
     const start = userCoords ?? stops[0];
-    const map = L.map(containerRef.current).setView(
-      [start.latitude, start.longitude],
-      16
-    );
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "© OpenStreetMap",
-      maxZoom: 19,
-    }).addTo(map);
-
-    // Línea del recorrido.
-    L.polyline(
-      stops.map((s) => [s.latitude, s.longitude] as [number, number]),
-      { color: "#1e90ff", weight: 4, opacity: 0.8 }
-    ).addTo(map);
-
-    markersLayer.current = L.layerGroup().addTo(map);
+    const map = new maplibregl.Map({
+      container: containerRef.current,
+      style: STYLE_URL,
+      center: [start.longitude, start.latitude],
+      zoom: 16,
+      pitch: 55, // cámara inclinada → sensación 3D
+      bearing: -20,
+      attributionControl: { compact: true },
+    });
+    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     mapRef.current = map;
 
-    // Leaflet no carga teselas si el contenedor tenía tamaño 0 al iniciar.
-    const invalidate = () => map.invalidateSize();
-    const t = setTimeout(invalidate, 100);
-    const ro = new ResizeObserver(invalidate);
-    ro.observe(containerRef.current);
+    map.on("load", () => {
+      // Edificios en 3D (esquema OpenMapTiles: fuente "openmaptiles").
+      try {
+        map.addLayer({
+          id: "buildings-3d",
+          source: "openmaptiles",
+          "source-layer": "building",
+          type: "fill-extrusion",
+          minzoom: 14,
+          paint: {
+            "fill-extrusion-color": "#d6d6de",
+            "fill-extrusion-height": [
+              "coalesce",
+              ["get", "render_height"],
+              ["get", "height"],
+              8,
+            ],
+            "fill-extrusion-base": [
+              "coalesce",
+              ["get", "render_min_height"],
+              ["get", "min_height"],
+              0,
+            ],
+            "fill-extrusion-opacity": 0.85,
+          },
+        });
+      } catch {
+        // Si el estilo no expone esa fuente, seguimos sin 3D de edificios.
+      }
+
+      // Línea de la ruta.
+      map.addSource("route", {
+        type: "geojson",
+        data: {
+          type: "Feature",
+          properties: {},
+          geometry: {
+            type: "LineString",
+            coordinates: stops.map((s) => [s.longitude, s.latitude]),
+          },
+        },
+      });
+      map.addLayer({
+        id: "route-line",
+        source: "route",
+        type: "line",
+        paint: { "line-color": "#1e90ff", "line-width": 4, "line-opacity": 0.85 },
+      });
+
+      // Paradas (capa de círculos con color por dato).
+      map.addSource("stops", {
+        type: "geojson",
+        data: stopsGeoJSON(stops, packages, currentIndex),
+      });
+      map.addLayer({
+        id: "stops-circles",
+        source: "stops",
+        type: "circle",
+        paint: {
+          "circle-radius": ["get", "radius"],
+          "circle-color": ["get", "color"],
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": 2,
+        },
+      });
+
+      readyRef.current = true;
+    });
 
     return () => {
-      clearTimeout(t);
-      ro.disconnect();
       map.remove();
       mapRef.current = null;
+      readyRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // --- Redibujar los marcadores de parada cuando cambian estado/selección ---
+  // --- Actualizar colores/estado de las paradas ---
   useEffect(() => {
-    const layer = markersLayer.current;
-    if (!layer) return;
-    layer.clearLayers();
-
-    stops.forEach((stop, index) => {
-      const pkg = packages.find((p) => p.routeStopId === stop.id);
-      const count = pkg && !pkg.delivered ? pkg.packageCount : 0;
-      const color = markerColor(index, currentIndex, stop, packages);
-
-      L.circleMarker([stop.latitude, stop.longitude], {
-        radius: index === currentIndex ? 9 : 6,
-        color: "#fff",
-        weight: 2,
-        fillColor: color,
-        fillOpacity: 1,
-      })
-        .bindPopup(
-          `<b>Stop ${stop.order}</b> · ${stop.address}<br/>${
-            count > 0 ? `${count} paquete(s)` : "Sin paquetes"
-          }`
-        )
-        .addTo(layer);
-    });
+    const map = mapRef.current;
+    if (!map || !readyRef.current) return;
+    const src = map.getSource("stops") as maplibregl.GeoJSONSource | undefined;
+    src?.setData(stopsGeoJSON(stops, packages, currentIndex));
   }, [stops, packages, currentIndex]);
 
   // --- Flecha que se desliza sobre la línea azul ---
@@ -140,35 +194,33 @@ export default function RouteMap({
     if (!map || !userCoords) return;
 
     const snap = snapToPolyline(userCoords, routeLine.current);
-    const pos: [number, number] = snap
-      ? [snap.latitude, snap.longitude]
-      : [userCoords.latitude, userCoords.longitude];
+    const lng = snap ? snap.longitude : userCoords.longitude;
+    const lat = snap ? snap.latitude : userCoords.latitude;
     const bearing = snap ? snap.bearing : 0;
 
-    if (!userArrow.current) {
-      userArrow.current = L.marker(pos, {
-        icon: arrowIcon(bearing),
-        interactive: false,
-        zIndexOffset: 1000,
-      }).addTo(map);
+    if (!arrow.current) {
+      arrow.current = new maplibregl.Marker({ element: makeArrowEl() })
+        .setLngLat([lng, lat])
+        .addTo(map);
     } else {
-      userArrow.current.setLatLng(pos);
-      userArrow.current.setIcon(arrowIcon(bearing));
+      arrow.current.setLngLat([lng, lat]);
     }
+    arrow.current.setRotation(bearing);
   }, [userCoords]);
 
-  // --- Centrar el mapa en la parada seleccionada (al tocar una dirección) ---
+  // --- Centrar la cámara en la parada seleccionada ---
   useEffect(() => {
     const map = mapRef.current;
     const stop = stops[currentIndex];
     if (!map || !stop) return;
-    map.setView([stop.latitude, stop.longitude], 17, { animate: true });
+    map.easeTo({
+      center: [stop.longitude, stop.latitude],
+      zoom: 17,
+      duration: 500,
+    });
   }, [currentIndex, stops]);
 
   return (
-    <div
-      ref={containerRef}
-      style={{ width: "100%", height: "100%", background: "#e9ecef" }}
-    />
+    <div ref={containerRef} style={{ width: "100%", height: "100%", background: "#e9ecef" }} />
   );
 }
