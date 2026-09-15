@@ -3,8 +3,8 @@ import { RouteStop } from "../types";
 /**
  * RUTA 2 — Tournée 136 (1630 Bulle), extraída de vídeo y geocodificada (OSM).
  * Inicio: Route de Riaz 76. Ver RUTA_2_extraida.md.
- * ⚠️ Chemin de l Ogoz y Chemin de la Fontanette no se encontraron en OSM:
- *    coordenada provisional (junto a la parada anterior) — revisar nombre/portales.
+ * 📍 Chemin de l Ogoz: ubicado por plus code (18 paradas en un punto aprox).
+ * ⚠️ Chemin de la Fontanette: aún sin geo (coordenada provisional) — falta su ubicación.
  * ⚠️ Tramos Corna/Fontanette con lecturas de vídeo dudosas.
  */
 export const ROUTE2_STOPS: RouteStop[] = [
@@ -224,14 +224,14 @@ export const ROUTE2_STOPS: RouteStop[] = [
   { id: 214, order: 214, address: "Chemin des Coquilles 39", latitude: 46.630776, longitude: 7.056316 },
   { id: 215, order: 215, address: "Chemin des Coquilles 35", latitude: 46.63096, longitude: 7.05665 },
   { id: 216, order: 216, address: "Chemin des Coquilles 31", latitude: 46.630729, longitude: 7.056994 },
-  { id: 217, order: 217, address: "Chemin de l'Ogoz 37", latitude: 46.630729, longitude: 7.056994 }, // ⚠️ sin geo (revisar)
-  { id: 218, order: 218, address: "Chemin de l'Ogoz 33", latitude: 46.630729, longitude: 7.056994 }, // ⚠️ sin geo (revisar)
-  { id: 219, order: 219, address: "Chemin de l'Ogoz 29", latitude: 46.630729, longitude: 7.056994 }, // ⚠️ sin geo (revisar)
-  { id: 220, order: 220, address: "Chemin de l'Ogoz 25", latitude: 46.630729, longitude: 7.056994 }, // ⚠️ sin geo (revisar)
-  { id: 221, order: 221, address: "Chemin de l'Ogoz 21", latitude: 46.630729, longitude: 7.056994 }, // ⚠️ sin geo (revisar)
-  { id: 222, order: 222, address: "Chemin de l'Ogoz 17", latitude: 46.630729, longitude: 7.056994 }, // ⚠️ sin geo (revisar)
-  { id: 223, order: 223, address: "Chemin de l'Ogoz 7", latitude: 46.630729, longitude: 7.056994 }, // ⚠️ sin geo (revisar)
-  { id: 224, order: 224, address: "Chemin de l'Ogoz 3", latitude: 46.630729, longitude: 7.056994 }, // ⚠️ sin geo (revisar)
+  { id: 217, order: 217, address: "Chemin de l'Ogoz 37", latitude: 46.629438, longitude: 7.055813 }, // 📍 Ogoz (plus code, aprox)
+  { id: 218, order: 218, address: "Chemin de l'Ogoz 33", latitude: 46.629438, longitude: 7.055813 }, // 📍 Ogoz (plus code, aprox)
+  { id: 219, order: 219, address: "Chemin de l'Ogoz 29", latitude: 46.629438, longitude: 7.055813 }, // 📍 Ogoz (plus code, aprox)
+  { id: 220, order: 220, address: "Chemin de l'Ogoz 25", latitude: 46.629438, longitude: 7.055813 }, // 📍 Ogoz (plus code, aprox)
+  { id: 221, order: 221, address: "Chemin de l'Ogoz 21", latitude: 46.629438, longitude: 7.055813 }, // 📍 Ogoz (plus code, aprox)
+  { id: 222, order: 222, address: "Chemin de l'Ogoz 17", latitude: 46.629438, longitude: 7.055813 }, // 📍 Ogoz (plus code, aprox)
+  { id: 223, order: 223, address: "Chemin de l'Ogoz 7", latitude: 46.629438, longitude: 7.055813 }, // 📍 Ogoz (plus code, aprox)
+  { id: 224, order: 224, address: "Chemin de l'Ogoz 3", latitude: 46.629438, longitude: 7.055813 }, // 📍 Ogoz (plus code, aprox)
   { id: 225, order: 225, address: "Chemin des Combes 6", latitude: 46.628576, longitude: 7.054141 },
   { id: 226, order: 226, address: "Chemin des Combes 8", latitude: 46.62869, longitude: 7.054247 },
   { id: 227, order: 227, address: "Chemin des Combes 10", latitude: 46.628805, longitude: 7.054354 },
@@ -252,16 +252,16 @@ export const ROUTE2_STOPS: RouteStop[] = [
   { id: 242, order: 242, address: "Chemin des Combes 3", latitude: 46.627279, longitude: 7.054263 },
   { id: 243, order: 243, address: "Chemin des Combes 2", latitude: 46.627431, longitude: 7.054862 },
   { id: 244, order: 244, address: "Chemin des Combes 4", latitude: 46.627759, longitude: 7.054858 },
-  { id: 245, order: 245, address: "Chemin de l'Ogoz 2", latitude: 46.627759, longitude: 7.054858 }, // ⚠️ sin geo (revisar)
-  { id: 246, order: 246, address: "Chemin de l'Ogoz 8", latitude: 46.627759, longitude: 7.054858 }, // ⚠️ sin geo (revisar)
-  { id: 247, order: 247, address: "Chemin de l'Ogoz 12", latitude: 46.627759, longitude: 7.054858 }, // ⚠️ sin geo (revisar)
-  { id: 248, order: 248, address: "Chemin de l'Ogoz 16", latitude: 46.627759, longitude: 7.054858 }, // ⚠️ sin geo (revisar)
-  { id: 249, order: 249, address: "Chemin de l'Ogoz 20", latitude: 46.627759, longitude: 7.054858 }, // ⚠️ sin geo (revisar)
-  { id: 250, order: 250, address: "Chemin de l'Ogoz 24", latitude: 46.627759, longitude: 7.054858 }, // ⚠️ sin geo (revisar)
-  { id: 251, order: 251, address: "Chemin de l'Ogoz 28", latitude: 46.627759, longitude: 7.054858 }, // ⚠️ sin geo (revisar)
-  { id: 252, order: 252, address: "Chemin de l'Ogoz 32", latitude: 46.627759, longitude: 7.054858 }, // ⚠️ sin geo (revisar)
-  { id: 253, order: 253, address: "Chemin de l'Ogoz 36", latitude: 46.627759, longitude: 7.054858 }, // ⚠️ sin geo (revisar)
-  { id: 254, order: 254, address: "Chemin de l'Ogoz 40", latitude: 46.627759, longitude: 7.054858 }, // ⚠️ sin geo (revisar)
+  { id: 245, order: 245, address: "Chemin de l'Ogoz 2", latitude: 46.629438, longitude: 7.055813 }, // 📍 Ogoz (plus code, aprox)
+  { id: 246, order: 246, address: "Chemin de l'Ogoz 8", latitude: 46.629438, longitude: 7.055813 }, // 📍 Ogoz (plus code, aprox)
+  { id: 247, order: 247, address: "Chemin de l'Ogoz 12", latitude: 46.629438, longitude: 7.055813 }, // 📍 Ogoz (plus code, aprox)
+  { id: 248, order: 248, address: "Chemin de l'Ogoz 16", latitude: 46.629438, longitude: 7.055813 }, // 📍 Ogoz (plus code, aprox)
+  { id: 249, order: 249, address: "Chemin de l'Ogoz 20", latitude: 46.629438, longitude: 7.055813 }, // 📍 Ogoz (plus code, aprox)
+  { id: 250, order: 250, address: "Chemin de l'Ogoz 24", latitude: 46.629438, longitude: 7.055813 }, // 📍 Ogoz (plus code, aprox)
+  { id: 251, order: 251, address: "Chemin de l'Ogoz 28", latitude: 46.629438, longitude: 7.055813 }, // 📍 Ogoz (plus code, aprox)
+  { id: 252, order: 252, address: "Chemin de l'Ogoz 32", latitude: 46.629438, longitude: 7.055813 }, // 📍 Ogoz (plus code, aprox)
+  { id: 253, order: 253, address: "Chemin de l'Ogoz 36", latitude: 46.629438, longitude: 7.055813 }, // 📍 Ogoz (plus code, aprox)
+  { id: 254, order: 254, address: "Chemin de l'Ogoz 40", latitude: 46.629438, longitude: 7.055813 }, // 📍 Ogoz (plus code, aprox)
   { id: 255, order: 255, address: "Chemin des Coquilles 17", latitude: 46.63004, longitude: 7.05731 },
   { id: 256, order: 256, address: "Chemin des Coquilles 7", latitude: 46.629818, longitude: 7.0582 },
   { id: 257, order: 257, address: "Chemin des Coquilles 5", latitude: 46.629554, longitude: 7.058052 },
