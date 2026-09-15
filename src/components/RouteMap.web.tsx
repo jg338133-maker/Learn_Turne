@@ -61,6 +61,7 @@ export default function RouteMap({
   const mapRef = useRef<L.Map | null>(null);
   const markersLayer = useRef<L.LayerGroup | null>(null);
   const userArrow = useRef<L.Marker | null>(null);
+  const routeLayer = useRef<L.Polyline | null>(null);
   const routeLine = useRef<Coords[]>([]);
 
   // Coordenadas de la línea de ruta (estáticas).
@@ -84,12 +85,6 @@ export default function RouteMap({
       maxZoom: 19,
     }).addTo(map);
 
-    // Línea del recorrido.
-    L.polyline(
-      stops.map((s) => [s.latitude, s.longitude] as [number, number]),
-      { color: "#1e90ff", weight: 4, opacity: 0.8 }
-    ).addTo(map);
-
     markersLayer.current = L.layerGroup().addTo(map);
     mapRef.current = map;
 
@@ -107,6 +102,22 @@ export default function RouteMap({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // --- Redibujar la línea del recorrido cuando cambia la ruta ---
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (routeLayer.current) {
+      routeLayer.current.remove();
+      routeLayer.current = null;
+    }
+    if (stops.length > 1) {
+      routeLayer.current = L.polyline(
+        stops.map((s) => [s.latitude, s.longitude] as [number, number]),
+        { color: "#1e90ff", weight: 4, opacity: 0.8 }
+      ).addTo(map);
+    }
+  }, [stops]);
 
   // --- Redibujar los marcadores de parada cuando cambian estado/selección ---
   useEffect(() => {
