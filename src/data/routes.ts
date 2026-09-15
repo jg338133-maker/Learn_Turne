@@ -1,6 +1,7 @@
 import { RouteStop } from "../types";
 import { ROUTE_STOPS } from "./testRoute";
 import { ROUTE2_STOPS } from "./route2";
+import { ROUTE3_STOPS } from "./route3";
 
 /**
  * Catálogo de recorridos disponibles en la app.
@@ -32,7 +33,7 @@ export const ROUTES: Route[] = [
   },
   {
     id: "ruta-3",
-    name: "Ruta 3",
-    stops: [],
+    name: "Tournée 112",
+    stops: ROUTE3_STOPS,
   },
 ];
