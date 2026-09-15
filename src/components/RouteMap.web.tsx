@@ -95,7 +95,8 @@ export default function RouteMap({
   useEffect(() => {
     if (mapRef.current || !containerRef.current) return;
 
-    const start = userCoords ?? stops[0];
+    const start = userCoords ??
+      stops[0] ?? { latitude: 46.6163, longitude: 7.0575 };
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: STYLE_URL,
@@ -228,6 +229,21 @@ export default function RouteMap({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // --- Actualizar la línea de la ruta al cambiar de recorrido ---
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !readyRef.current) return;
+    const src = map.getSource("route") as ML.GeoJSONSource | undefined;
+    src?.setData({
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "LineString",
+        coordinates: stops.map((s) => [s.longitude, s.latitude]),
+      },
+    });
+  }, [stops]);
 
   // --- Actualizar colores/estado de las paradas ---
   useEffect(() => {
