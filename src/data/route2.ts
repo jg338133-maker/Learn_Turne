@@ -4,8 +4,7 @@ import { RouteStop } from "../types";
  * RUTA 2 — Tournée 136 (1630 Bulle), extraída de vídeo y geocodificada (OSM).
  * Inicio: Route de Riaz 76. Ver RUTA_2_extraida.md.
  * 📍 Chemin de l Ogoz: ubicado por plus code (18 paradas en un punto aprox).
- * ⚠️ Chemin de la Fontanette: aún sin geo (coordenada provisional) — falta su ubicación.
- * ⚠️ Tramos Corna/Fontanette con lecturas de vídeo dudosas.
+ * ⚠️ Tramos Corna/Fontanette con lecturas de vídeo dudosas (números a revisar).
  */
 export const ROUTE2_STOPS: RouteStop[] = [
   { id: 1, order: 1, address: "Route de Riaz 76", latitude: 46.627371, longitude: 7.059899 },
@@ -280,20 +279,20 @@ export const ROUTE2_STOPS: RouteStop[] = [
   { id: 270, order: 270, address: "Chemin de la Corna 5", latitude: 46.628885, longitude: 7.057543 },
   { id: 271, order: 271, address: "Chemin de la Corna 3", latitude: 46.628609, longitude: 7.057731 },
   { id: 272, order: 272, address: "Chemin de la Corna 1", latitude: 46.628461, longitude: 7.05798 },
-  { id: 273, order: 273, address: "Chemin de la Fontanette 2", latitude: 46.628461, longitude: 7.05798 }, // ⚠️ sin geo (revisar)
-  { id: 274, order: 274, address: "Chemin de la Fontanette 4", latitude: 46.628461, longitude: 7.05798 }, // ⚠️ sin geo (revisar)
-  { id: 275, order: 275, address: "Chemin de la Fontanette 6", latitude: 46.628461, longitude: 7.05798 }, // ⚠️ sin geo (revisar)
-  { id: 276, order: 276, address: "Chemin de la Fontanette 10", latitude: 46.628461, longitude: 7.05798 }, // ⚠️ sin geo (revisar)
-  { id: 277, order: 277, address: "Chemin de la Fontanette 14", latitude: 46.628461, longitude: 7.05798 }, // ⚠️ sin geo (revisar)
-  { id: 278, order: 278, address: "Chemin de la Fontanette 22", latitude: 46.628461, longitude: 7.05798 }, // ⚠️ sin geo (revisar)
-  { id: 279, order: 279, address: "Chemin de la Fontanette 23", latitude: 46.628461, longitude: 7.05798 }, // ⚠️ sin geo (revisar)
-  { id: 280, order: 280, address: "Chemin de la Fontanette 17", latitude: 46.628461, longitude: 7.05798 }, // ⚠️ sin geo (revisar)
-  { id: 281, order: 281, address: "Chemin de la Fontanette 15", latitude: 46.628461, longitude: 7.05798 }, // ⚠️ sin geo (revisar)
-  { id: 282, order: 282, address: "Chemin de la Fontanette 11", latitude: 46.628461, longitude: 7.05798 }, // ⚠️ sin geo (revisar)
-  { id: 283, order: 283, address: "Chemin de la Fontanette 7", latitude: 46.628461, longitude: 7.05798 }, // ⚠️ sin geo (revisar)
-  { id: 284, order: 284, address: "Chemin de la Fontanette 5", latitude: 46.628461, longitude: 7.05798 }, // ⚠️ sin geo (revisar)
-  { id: 285, order: 285, address: "Chemin de la Fontanette 3", latitude: 46.628461, longitude: 7.05798 }, // ⚠️ sin geo (revisar)
-  { id: 286, order: 286, address: "Chemin de la Fontanette 1", latitude: 46.628461, longitude: 7.05798 }, // ⚠️ sin geo (revisar)
+  { id: 273, order: 273, address: "Chemin de Fontanette 2", latitude: 46.628262, longitude: 7.057777 },
+  { id: 274, order: 274, address: "Chemin de Fontanette 4", latitude: 46.628386, longitude: 7.057466 },
+  { id: 275, order: 275, address: "Chemin de Fontanette 6", latitude: 46.628529, longitude: 7.057252 },
+  { id: 276, order: 276, address: "Chemin de Fontanette 10", latitude: 46.628723, longitude: 7.056956 },
+  { id: 277, order: 277, address: "Chemin de Fontanette 14", latitude: 46.628852, longitude: 7.056671 },
+  { id: 278, order: 278, address: "Chemin de Fontanette 22", latitude: 46.629022, longitude: 7.056811 },
+  { id: 279, order: 279, address: "Chemin de Fontanette 23", latitude: 46.629216, longitude: 7.056531 },
+  { id: 280, order: 280, address: "Chemin de Fontanette 17", latitude: 46.628863, longitude: 7.056058 },
+  { id: 281, order: 281, address: "Chemin de Fontanette 15", latitude: 46.628634, longitude: 7.056344 },
+  { id: 282, order: 282, address: "Chemin de Fontanette 11", latitude: 46.62852, longitude: 7.05658 },
+  { id: 283, order: 283, address: "Chemin de Fontanette 7", latitude: 46.62837, longitude: 7.056857 },
+  { id: 284, order: 284, address: "Chemin de Fontanette 5", latitude: 46.62823, longitude: 7.057091 },
+  { id: 285, order: 285, address: "Chemin de Fontanette 3", latitude: 46.628103, longitude: 7.057396 },
+  { id: 286, order: 286, address: "Chemin de Fontanette 1", latitude: 46.627972, longitude: 7.057658 },
   { id: 287, order: 287, address: "Chemin de Champ-Francey 7", latitude: 46.627716, longitude: 7.057511 },
   { id: 288, order: 288, address: "Chemin de Champ-Francey 5", latitude: 46.627532, longitude: 7.057201 },
   { id: 289, order: 289, address: "Chemin de Champ-Francey 3", latitude: 46.627515, longitude: 7.057304 },
