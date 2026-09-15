@@ -44,8 +44,9 @@ export default function RouteMap({
 }: Props) {
   const mapRef = useRef<MapView>(null);
 
-  // Región inicial: centrada en el usuario si hay GPS, si no en la 1ª parada.
-  const center = userCoords ?? stops[0];
+  // Región inicial: usuario si hay GPS, si no la 1ª parada, y si la ruta está
+  // vacía, un centro por defecto (Bulle) para no romper el mapa.
+  const center = userCoords ?? stops[0] ?? { latitude: 46.6163, longitude: 7.0575 };
 
   const initialRegion = {
     latitude: center.latitude,

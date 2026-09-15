@@ -73,7 +73,8 @@ export default function RouteMap({
   useEffect(() => {
     if (mapRef.current || !containerRef.current) return;
 
-    const start = userCoords ?? stops[0];
+    // Centro inicial: tu GPS, si no la 1ª parada, y si la ruta está vacía, Bulle.
+    const start = userCoords ?? stops[0] ?? { latitude: 46.6163, longitude: 7.0575 };
     const map = L.map(containerRef.current).setView(
       [start.latitude, start.longitude],
       16

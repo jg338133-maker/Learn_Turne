@@ -85,6 +85,13 @@ export default function StopsList({
         initialNumToRender={20}
         windowSize={11}
         keyboardShouldPersistTaps="handled"
+        ListEmptyComponent={
+          <Text style={styles.empty}>
+            {stops.length === 0
+              ? "Esta ruta aún no tiene paradas."
+              : "Sin resultados para la búsqueda."}
+          </Text>
+        }
         renderItem={({ item }) => {
           const { stop, index } = item;
           const pkg = pkgById.get(stop.id);
@@ -266,5 +273,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "900",
     lineHeight: 20,
+  },
+  empty: {
+    textAlign: "center",
+    color: "#868e96",
+    fontSize: 15,
+    paddingVertical: 24,
   },
 });

@@ -17,9 +17,8 @@ import RouteMap from "./src/components/RouteMap";
 import DeliveryPanel from "./src/components/DeliveryPanel";
 import StopsList from "./src/components/StopsList";
 import { useLocation } from "./src/hooks/useLocation";
-import { ROUTE_STOPS } from "./src/data/testRoute";
-import { TEST_PACKAGES } from "./src/data/testPackages";
-import { PackageStop } from "./src/types";
+import { ROUTES } from "./src/data/routes";
+import { PackageStop, RouteStop } from "./src/types";
 import { haversineDistance, formatDistance } from "./src/utils/distance";
 import {
   autoAdvanceIndex,
@@ -28,8 +27,9 @@ import {
   PACKAGE_ALERT_DISTANCE,
 } from "./src/utils/routeLogic";
 
-/** Clave con la que se guardan los paquetes del día en el almacenamiento del móvil. */
-const PACKAGES_STORAGE_KEY = "learn_turne:packages:v1";
+/** Claves de guardado en el almacenamiento del móvil. */
+const SELECTED_ROUTE_KEY = "learn_turne:selectedRoute:v1";
+const packagesKey = (routeId: string) => `learn_turne:packages:v1:${routeId}`;
 
 /**
  * Pantalla principal. Junta todas las piezas:
@@ -42,39 +42,75 @@ const PACKAGES_STORAGE_KEY = "learn_turne:packages:v1";
 export default function App() {
   const { coords, accuracy, permissionGranted, errorMsg } = useLocation();
 
-  // Índice de la parada actual dentro de ROUTE_STOPS (empezamos en la 1ª).
+  // Recorrido activo (Ruta 1/2/3). Sus paradas alimentan toda la interfaz.
+  const [selectedRouteId, setSelectedRouteId] = useState<string>(ROUTES[0].id);
+  const activeRoute =
+    ROUTES.find((r) => r.id === selectedRouteId) ?? ROUTES[0];
+  const stops = activeRoute.stops;
+
+  // Índice de la parada actual dentro de la ruta activa (empezamos en la 1ª).
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Copia local de los paquetes: la mutamos al marcar como entregado.
-  const [packages, setPackages] = useState<PackageStop[]>(() =>
-    TEST_PACKAGES.map((p) => ({ ...p }))
-  );
+  // Paquetes del día de la ruta activa (se cargan a mano y se guardan por ruta).
+  const [packages, setPackages] = useState<PackageStop[]>([]);
 
-  // Clave de guardado y flag de "ya cargado desde disco" (evita pisar los datos
-  // guardados con el array inicial antes de leerlos).
-  const [storageLoaded, setStorageLoaded] = useState(false);
+  // Flags de carga: bootLoaded = ya sabemos qué ruta estaba elegida;
+  // packagesReady = ya cargamos los paquetes de la ruta actual (evita pisarlos).
+  const [bootLoaded, setBootLoaded] = useState(false);
+  const [packagesReady, setPackagesReady] = useState(false);
 
-  // Al abrir: recuperar los paquetes guardados en el teléfono (si los hay).
+  // Al abrir: recuperar qué ruta estaba seleccionada.
   useEffect(() => {
     (async () => {
       try {
-        const raw = await AsyncStorage.getItem(PACKAGES_STORAGE_KEY);
-        if (raw) setPackages(JSON.parse(raw) as PackageStop[]);
+        const rid = await AsyncStorage.getItem(SELECTED_ROUTE_KEY);
+        if (rid && ROUTES.some((r) => r.id === rid)) setSelectedRouteId(rid);
       } catch {
-        // Si falla la lectura seguimos con la lista vacía.
+        // seguimos con la ruta por defecto
       } finally {
-        setStorageLoaded(true);
+        setBootLoaded(true);
       }
     })();
   }, []);
 
-  // Cada vez que cambian los paquetes (y ya hemos cargado): guardar en el teléfono.
+  // Al cambiar de ruta (ya arrancados): cargar SUS paquetes y reiniciar posición.
   useEffect(() => {
-    if (!storageLoaded) return;
-    AsyncStorage.setItem(PACKAGES_STORAGE_KEY, JSON.stringify(packages)).catch(
-      () => {}
-    );
-  }, [packages, storageLoaded]);
+    if (!bootLoaded) return;
+    let cancelled = false;
+    setPackagesReady(false);
+    (async () => {
+      let loaded: PackageStop[] = [];
+      try {
+        const raw = await AsyncStorage.getItem(packagesKey(selectedRouteId));
+        if (raw) loaded = JSON.parse(raw) as PackageStop[];
+      } catch {
+        loaded = [];
+      }
+      if (cancelled) return;
+      setPackages(loaded);
+      setCurrentIndex(0);
+      announcedRef.current.clear();
+      setPackagesReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedRouteId, bootLoaded]);
+
+  // Guardar la ruta seleccionada.
+  useEffect(() => {
+    if (!bootLoaded) return;
+    AsyncStorage.setItem(SELECTED_ROUTE_KEY, selectedRouteId).catch(() => {});
+  }, [selectedRouteId, bootLoaded]);
+
+  // Guardar los paquetes de la ruta activa cuando cambian (ya cargados).
+  useEffect(() => {
+    if (!packagesReady) return;
+    AsyncStorage.setItem(
+      packagesKey(selectedRouteId),
+      JSON.stringify(packages)
+    ).catch(() => {});
+  }, [packages, packagesReady, selectedRouteId]);
 
   // Recuerda qué paradas ya han "hablado" para no repetir la voz en cada
   // actualización del GPS.
@@ -82,8 +118,8 @@ export default function App() {
 
   // Estado derivado que consume la interfaz.
   const routeState = useMemo(
-    () => computeRouteState(ROUTE_STOPS, packages, currentIndex),
-    [packages, currentIndex]
+    () => computeRouteState(stops, packages, currentIndex),
+    [stops, packages, currentIndex]
   );
 
   // Distancia hasta el próximo paquete (o hasta la siguiente parada si no hay paquete).
@@ -105,11 +141,11 @@ export default function App() {
   // --- Avance automático de la ruta (ROUTE ORDER + GPS, con ventana) ---
   useEffect(() => {
     if (!coords) return;
-    const newIndex = autoAdvanceIndex(coords, ROUTE_STOPS, currentIndex);
+    const newIndex = autoAdvanceIndex(coords, stops, currentIndex);
     if (newIndex !== currentIndex) {
       setCurrentIndex(newIndex);
     }
-  }, [coords, currentIndex]);
+  }, [coords, currentIndex, stops]);
 
   // --- Aviso de proximidad por voz (una sola vez por parada) ---
   useEffect(() => {
@@ -140,7 +176,7 @@ export default function App() {
 
     // Avanzamos la posición de ruta hasta la parada entregada (si va por delante),
     // así "AFTER THAT" pasa a ser el nuevo "NEXT PACKAGE".
-    const deliveredIndex = ROUTE_STOPS.findIndex((s) => s.id === target.stop.id);
+    const deliveredIndex = stops.findIndex((s) => s.id === target.stop.id);
     if (deliveredIndex > currentIndex) {
       setCurrentIndex(deliveredIndex);
     }
@@ -151,7 +187,7 @@ export default function App() {
 
   // --- Botón NEXT: avanzar manualmente una parada ---
   const handleNext = () => {
-    setCurrentIndex((i) => Math.min(i + 1, ROUTE_STOPS.length - 1));
+    setCurrentIndex((i) => Math.min(i + 1, stops.length - 1));
   };
 
   // --- Botón ATRÁS: retroceder una parada ---
@@ -161,8 +197,8 @@ export default function App() {
 
   // --- Botón PARADA MÁS CERCANA: colocar el punto actual donde estás ---
   const handleNearest = () => {
-    if (!coords) return;
-    setCurrentIndex(findNearestStopIndex(coords, ROUTE_STOPS));
+    if (!coords || stops.length === 0) return;
+    setCurrentIndex(findNearestStopIndex(coords, stops));
   };
 
   // --- Casilla de la lista: cargar / quitar un paquete en una parada ---
@@ -193,7 +229,7 @@ export default function App() {
   };
 
   // --- Tocar una dirección: abrir Google Maps con esa parada como destino ---
-  const handleOpenMaps = (stop: (typeof ROUTE_STOPS)[number]) => {
+  const handleOpenMaps = (stop: RouteStop) => {
     const dest = `${stop.latitude},${stop.longitude}`;
     const url = `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=walking`;
     Linking.openURL(url).catch(() => {});
@@ -241,7 +277,7 @@ export default function App() {
         {/* Mapa a pantalla completa (fondo) */}
         <View style={styles.mapFill}>
           <RouteMap
-            stops={ROUTE_STOPS}
+            stops={stops}
             packages={packages}
             userCoords={coords}
             currentIndex={currentIndex}
@@ -257,6 +293,30 @@ export default function App() {
               {sheetExpanded ? "▼ Ver mapa" : "▲ Ver lista"}
             </Text>
           </Pressable>
+
+          {/* Selector de recorrido */}
+          <View style={styles.routeBar}>
+            {ROUTES.map((r) => {
+              const active = r.id === selectedRouteId;
+              return (
+                <Pressable
+                  key={r.id}
+                  style={[styles.routeChip, active && styles.routeChipActive]}
+                  onPress={() => setSelectedRouteId(r.id)}
+                >
+                  <Text
+                    style={[
+                      styles.routeChipText,
+                      active && styles.routeChipTextActive,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {r.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
 
           {/* Controles operativos (siempre visibles) */}
           <DeliveryPanel
@@ -274,7 +334,7 @@ export default function App() {
           {/* Lista de paradas (ocupa el resto del panel) */}
           <View style={styles.listFill}>
             <StopsList
-              stops={ROUTE_STOPS}
+              stops={stops}
               packages={packages}
               currentIndex={currentIndex}
               onSelectStop={setCurrentIndex}
@@ -343,6 +403,35 @@ const styles = StyleSheet.create({
   },
   listFill: {
     flex: 1, // la lista ocupa el resto del panel
+  },
+  routeBar: {
+    flexDirection: "row",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+  },
+  routeChip: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+    backgroundColor: "#f1f3f5",
+    borderWidth: 1,
+    borderColor: "#dee2e6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  routeChipActive: {
+    backgroundColor: "#1c7ed6",
+    borderColor: "#1c7ed6",
+  },
+  routeChipText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#495057",
+  },
+  routeChipTextActive: {
+    color: "#fff",
   },
   banner: {
     backgroundColor: "#c92a2a",
