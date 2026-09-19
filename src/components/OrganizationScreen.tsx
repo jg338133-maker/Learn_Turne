@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   boundaryRow: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
   boundaryField: { flex: 1 },
   boundaryLabel: { fontSize: 11, fontWeight: "900", color: "#6b7280", marginBottom: 5 },
-  dropdown: { minHeight: 62, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 10, backgroundColor: "#f8fafc", padding: 10 },
+  dropdown: { minHeight: 62, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#9ca3af", borderRadius: 10, backgroundColor: "#e5e7eb", padding: 10 },
   dropdownText: { flex: 1, color: "#17181a", fontSize: 13, lineHeight: 17, fontWeight: "700" },
   chevron: { fontSize: 22, color: "#6b7280", marginLeft: 5 },
   toArrow: { fontSize: 20, fontWeight: "900", color: "#9ca3af", paddingBottom: 19 },
