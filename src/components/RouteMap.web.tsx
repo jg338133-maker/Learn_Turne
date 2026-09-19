@@ -4,9 +4,51 @@ import { Coords, PackageStop, RouteStop } from "../types";
 import { hasActivePackage } from "../utils/routeLogic";
 import { snapToPolyline } from "../utils/geo";
 
-// MapLibre se carga desde CDN (ver index.html) porque el worker no funciona
-// empaquetado con Metro. Aquí solo usamos los tipos; el runtime viene de window.
-const maplibregl: typeof ML = (globalThis as any).maplibregl;
+const MAPLIBRE_VERSION = "4.7.1";
+const MAPLIBRE_SCRIPT_ID = "learn-turne-maplibre-script";
+const MAPLIBRE_CSS_ID = "learn-turne-maplibre-css";
+
+type MapLibreGlobal = typeof globalThis & { maplibregl?: typeof ML };
+
+/**
+ * Metro no empaqueta correctamente el worker de MapLibre en esta versión web.
+ * Cargamos el runtime desde CDN, pero esperamos explícitamente a que esté listo:
+ * así el primer render no depende de una inyección manual durante el deploy.
+ */
+function loadMapLibre(): Promise<typeof ML> {
+  const root = globalThis as MapLibreGlobal;
+  if (root.maplibregl) return Promise.resolve(root.maplibregl);
+
+  if (!document.getElementById(MAPLIBRE_CSS_ID)) {
+    const link = document.createElement("link");
+    link.id = MAPLIBRE_CSS_ID;
+    link.rel = "stylesheet";
+    link.href = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`;
+    document.head.appendChild(link);
+  }
+
+  return new Promise((resolve, reject) => {
+    const existing = document.getElementById(
+      MAPLIBRE_SCRIPT_ID
+    ) as HTMLScriptElement | null;
+    const script = existing ?? document.createElement("script");
+
+    const handleLoad = () => {
+      if (root.maplibregl) resolve(root.maplibregl);
+      else reject(new Error("MapLibre se cargó sin exponer su API global."));
+    };
+    const handleError = () => reject(new Error("No se pudo cargar MapLibre."));
+
+    script.addEventListener("load", handleLoad, { once: true });
+    script.addEventListener("error", handleError, { once: true });
+    if (!existing) {
+      script.id = MAPLIBRE_SCRIPT_ID;
+      script.src = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.js`;
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  });
+}
 
 /**
  * Versión WEB del mapa en 3D con MapLibre GL (rama experimental).
@@ -85,41 +127,61 @@ export default function RouteMap({
   const readyRef = useRef(false);
   const arrow = useRef<ML.Marker | null>(null);
   const routeLine = useRef<Coords[]>([]);
+  const latestRoute = useRef({ stops, packages, currentIndex });
 
   routeLine.current = stops.map((s) => ({
     latitude: s.latitude,
     longitude: s.longitude,
   }));
+  latestRoute.current = { stops, packages, currentIndex };
 
   // --- Inicializar el mapa una sola vez ---
   useEffect(() => {
     if (mapRef.current || !containerRef.current) return;
+    let disposed = false;
+    let map: ML.Map | null = null;
+    let ro: ResizeObserver | null = null;
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
+    let repaintTimer: ReturnType<typeof setInterval> | null = null;
 
-    const start = userCoords ??
-      stops[0] ?? { latitude: 46.6163, longitude: 7.0575 };
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      style: STYLE_URL,
-      center: [start.longitude, start.latitude],
-      zoom: 16,
-      pitch: 55, // cámara inclinada → sensación 3D
-      bearing: -20,
-      attributionControl: { compact: true },
-    });
-    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
-    mapRef.current = map;
+    const initialise = async () => {
+      const maplibregl = await loadMapLibre();
+      const container = containerRef.current;
+      if (disposed || !container) return;
 
-    // MapLibre no pinta si el contenedor tenía tamaño 0 al crearse (habitual en
-    // layouts flex). Forzamos resize cuando ya tiene tamaño y ante cambios.
-    const doResize = () => map.resize();
-    const resizeTimer = setTimeout(doResize, 100);
-    const ro = new ResizeObserver(doResize);
-    ro.observe(containerRef.current);
+      // Esperar al layout evita crear el canvas con 0×0 px en el primer render.
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      );
+      if (disposed || !containerRef.current) return;
 
-    map.on("load", () => {
+      const route = latestRoute.current;
+      const start = userCoords ??
+        route.stops[0] ?? { latitude: 46.6163, longitude: 7.0575 };
+      map = new maplibregl.Map({
+        container,
+        style: STYLE_URL,
+        center: [start.longitude, start.latitude],
+        zoom: 16,
+        pitch: 55,
+        bearing: -20,
+        attributionControl: { compact: true },
+      });
+      map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
+      mapRef.current = map;
+
+      const doResize = () => map?.resize();
+      resizeTimer = setTimeout(doResize, 100);
+      ro = new ResizeObserver(doResize);
+      ro.observe(container);
+
+      map.on("load", () => {
+        if (!map || disposed) return;
+        const activeMap = map;
+        const current = latestRoute.current;
       // Edificios en 3D (esquema OpenMapTiles: fuente "openmaptiles").
       try {
-        map.addLayer({
+        activeMap.addLayer({
           id: "buildings-3d",
           source: "openmaptiles",
           "source-layer": "building",
@@ -147,18 +209,18 @@ export default function RouteMap({
       }
 
       // Línea de la ruta.
-      map.addSource("route", {
+      activeMap.addSource("route", {
         type: "geojson",
         data: {
           type: "Feature",
           properties: {},
           geometry: {
             type: "LineString",
-            coordinates: stops.map((s) => [s.longitude, s.latitude]),
+            coordinates: current.stops.map((s) => [s.longitude, s.latitude]),
           },
         },
       });
-      map.addLayer({
+      activeMap.addLayer({
         id: "route-line",
         source: "route",
         type: "line",
@@ -166,11 +228,11 @@ export default function RouteMap({
       });
 
       // Paradas (capa de círculos con color por dato).
-      map.addSource("stops", {
+      activeMap.addSource("stops", {
         type: "geojson",
-        data: stopsGeoJSON(stops, packages, currentIndex),
+        data: stopsGeoJSON(current.stops, current.packages, current.currentIndex),
       });
-      map.addLayer({
+      activeMap.addLayer({
         id: "stops-circles",
         source: "stops",
         type: "circle",
@@ -183,7 +245,7 @@ export default function RouteMap({
       });
 
       // Tocar una parada muestra un globo con su dirección.
-      map.on("click", "stops-circles", (e) => {
+      activeMap.on("click", "stops-circles", (e) => {
         const f = e.features && e.features[0];
         if (!f) return;
         const p = f.properties as { order: number; address: string };
@@ -194,36 +256,55 @@ export default function RouteMap({
         new maplibregl.Popup({ offset: 12 })
           .setLngLat(coords)
           .setHTML(`<b>Parada ${p.order}</b><br/>${p.address}`)
-          .addTo(map);
+          .addTo(activeMap);
       });
-      map.on("mouseenter", "stops-circles", () => {
-        map.getCanvas().style.cursor = "pointer";
+      activeMap.on("mouseenter", "stops-circles", () => {
+        activeMap.getCanvas().style.cursor = "pointer";
       });
-      map.on("mouseleave", "stops-circles", () => {
-        map.getCanvas().style.cursor = "";
+      activeMap.on("mouseleave", "stops-circles", () => {
+        activeMap.getCanvas().style.cursor = "";
       });
 
       readyRef.current = true;
+      const selectedStop = current.stops[current.currentIndex];
+      if (selectedStop) {
+        activeMap.easeTo({
+          center: [selectedStop.longitude, selectedStop.latitude],
+          zoom: 17,
+          duration: 0,
+        });
+      }
       // MapLibre a veces no hace el primer repintado en este layout hasta que
       // se fuerza un resize. Lo forzamos en bucle corto hasta que las teselas
       // están cargadas (y luego paramos), para un arranque fiable.
       let ticks = 0;
-      const kick = setInterval(() => {
+      repaintTimer = setInterval(() => {
         if (mapRef.current !== map) {
-          clearInterval(kick);
+          if (repaintTimer) clearInterval(repaintTimer);
           return;
         }
-        map.resize();
-        map.triggerRepaint();
+        activeMap.resize();
+        activeMap.triggerRepaint();
         ticks += 1;
-        if (map.areTilesLoaded() || ticks > 30) clearInterval(kick);
+        if (activeMap.areTilesLoaded() || ticks > 30) {
+          if (repaintTimer) clearInterval(repaintTimer);
+        }
       }, 200);
+      });
+    };
+
+    initialise().catch((error) => {
+      if (!disposed) console.error("No se pudo iniciar el mapa 3D:", error);
     });
 
     return () => {
-      clearTimeout(resizeTimer);
-      ro.disconnect();
-      map.remove();
+      disposed = true;
+      if (resizeTimer) clearTimeout(resizeTimer);
+      if (repaintTimer) clearInterval(repaintTimer);
+      ro?.disconnect();
+      arrow.current?.remove();
+      arrow.current = null;
+      map?.remove();
       mapRef.current = null;
       readyRef.current = false;
     };
@@ -257,6 +338,8 @@ export default function RouteMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !userCoords) return;
+    const maplibregl = (globalThis as MapLibreGlobal).maplibregl;
+    if (!maplibregl) return;
 
     const snap = snapToPolyline(userCoords, routeLine.current);
     const lng = snap ? snap.longitude : userCoords.longitude;
