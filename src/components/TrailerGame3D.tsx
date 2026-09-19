@@ -20,6 +20,41 @@ export default function TrailerGame3D({
   disabled = false,
 }: Props) {
   const sections = new Map(profile.sections.map((section) => [section.id, section]));
+  const rows = [profile.slotOrder.slice(0, 3), profile.slotOrder.slice(3, 6)];
+
+  const renderSlot = (id: string) => {
+    const section = sections.get(id);
+    if (!section) return null;
+    const selected = selectedId === id;
+    const correct = !!expectedId && expectedId === id;
+    const wrong = selected && !!expectedId && expectedId !== id;
+    return (
+      <Pressable
+        key={id}
+        disabled={disabled || !onPressSlot}
+        onPress={() => onPressSlot?.(id)}
+        accessibilityRole="button"
+        accessibilityLabel={`Compartiment ${id}, ${section.name}`}
+        style={({ pressed }) => [
+          styles.slot,
+          selected && styles.slotSelected,
+          correct && styles.slotCorrect,
+          wrong && styles.slotWrong,
+          pressed && styles.slotPressed,
+        ]}
+      >
+        <View style={styles.slotTop} />
+        <Text style={styles.slotId}>{id}</Text>
+        <Text style={styles.slotName} numberOfLines={2}>{section.name}</Text>
+        {selected && parcelLabel ? (
+          <View style={[styles.parcel, wrong && styles.parcelWrong]}>
+            <View style={styles.parcelTape} />
+            <Text style={styles.parcelText}>{parcelLabel}</Text>
+          </View>
+        ) : null}
+      </Pressable>
+    );
+  };
 
   return (
     <View style={styles.scene}>
@@ -45,39 +80,9 @@ export default function TrailerGame3D({
         <Text style={styles.lidText}>OUVERTURE LATÉRALE</Text>
       </View>
       <View style={styles.trailerDeck}>
-        {profile.slotOrder.map((id) => {
-          const section = sections.get(id);
-          if (!section) return null;
-          const selected = selectedId === id;
-          const correct = !!expectedId && expectedId === id;
-          const wrong = selected && !!expectedId && expectedId !== id;
-          return (
-            <Pressable
-              key={id}
-              disabled={disabled || !onPressSlot}
-              onPress={() => onPressSlot?.(id)}
-              accessibilityRole="button"
-              accessibilityLabel={`Compartiment ${id}, ${section.name}`}
-              style={({ pressed }) => [
-                styles.slot,
-                selected && styles.slotSelected,
-                correct && styles.slotCorrect,
-                wrong && styles.slotWrong,
-                pressed && styles.slotPressed,
-              ]}
-            >
-              <View style={styles.slotTop} />
-              <Text style={styles.slotId}>{id}</Text>
-              <Text style={styles.slotName} numberOfLines={2}>{section.name}</Text>
-              {selected && parcelLabel ? (
-                <View style={[styles.parcel, wrong && styles.parcelWrong]}>
-                  <View style={styles.parcelTape} />
-                  <Text style={styles.parcelText}>{parcelLabel}</Text>
-                </View>
-              ) : null}
-            </Pressable>
-          );
-        })}
+        {rows.map((row, index) => (
+          <View key={index} style={styles.slotRow}>{row.map(renderSlot)}</View>
+        ))}
       </View>
       <View style={[styles.trailerWheel, styles.trailerWheelLeft]}><View style={styles.hub} /></View>
       <View style={[styles.trailerWheel, styles.trailerWheelRight]}><View style={styles.hub} /></View>
@@ -173,13 +178,14 @@ const styles = StyleSheet.create({
   lidText: { fontSize: 8, fontWeight: "900", color: "#6b7280", letterSpacing: 0.8 },
   trailerDeck: {
     position: "absolute", left: 29, right: "40%", top: 126, height: 139,
-    padding: 5, flexDirection: "row", flexWrap: "wrap", gap: 5,
+    padding: 5, gap: 5,
     backgroundColor: "#303940", borderRadius: 9,
   },
+  slotRow: { flex: 1, flexDirection: "row", gap: 5 },
   slot: {
-    width: "31.6%", height: 61, borderRadius: 7, backgroundColor: "#e7eaec",
+    flex: 1, minWidth: 0, borderRadius: 7, backgroundColor: "#e7eaec",
     borderWidth: 2, borderColor: "#9ca3af", alignItems: "center", justifyContent: "center",
-    paddingHorizontal: 3, overflow: "visible",
+    paddingHorizontal: 1, overflow: "visible",
   },
   slotTop: {
     position: "absolute", top: -4, left: 3, right: 3, height: 5,
