@@ -4,6 +4,7 @@ import {
   Linking,
   Pressable,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -16,6 +17,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import RouteMap from "./src/components/RouteMap";
 import DeliveryPanel from "./src/components/DeliveryPanel";
 import StopsList from "./src/components/StopsList";
+import Icon from "./src/components/Icon";
 import { useLocation } from "./src/hooks/useLocation";
 import { ROUTES } from "./src/data/routes";
 import { PackageStop, RouteStop } from "./src/types";
@@ -289,13 +291,24 @@ export default function App() {
           {/* Asa para desplegar/plegar */}
           <Pressable style={styles.handle} onPress={toggleSheet}>
             <View style={styles.grabber} />
-            <Text style={styles.handleText}>
-              {sheetExpanded ? "▼ Ver mapa" : "▲ Ver lista"}
-            </Text>
+            <View style={styles.handleRow}>
+              <Icon
+                name={sheetExpanded ? "chevron-down" : "chevron-up"}
+                size={16}
+                color="#9ca3af"
+              />
+              <Text style={styles.handleText}>
+                {sheetExpanded ? "Ver mapa" : "Ver lista"}
+              </Text>
+            </View>
           </Pressable>
 
-          {/* Selector de recorrido */}
-          <View style={styles.routeBar}>
+          {/* Selector de recorrido (scroll horizontal) */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.routeBar}
+          >
             {ROUTES.map((r) => {
               const active = r.id === selectedRouteId;
               return (
@@ -316,7 +329,7 @@ export default function App() {
                 </Pressable>
               );
             })}
-          </View>
+          </ScrollView>
 
           {/* Controles operativos (siempre visibles) */}
           <DeliveryPanel
@@ -385,50 +398,51 @@ const styles = StyleSheet.create({
   handle: {
     alignItems: "center",
     paddingTop: 8,
-    paddingBottom: 4,
+    paddingBottom: 6,
     backgroundColor: "#fff",
   },
   grabber: {
-    width: 44,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: "#ced4da",
-    marginBottom: 4,
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#d1d5db",
+    marginBottom: 6,
+  },
+  handleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   handleText: {
     fontSize: 12,
-    fontWeight: "800",
-    color: "#868e96",
-    letterSpacing: 0.5,
+    fontWeight: "700",
+    color: "#9ca3af",
+    letterSpacing: 0.3,
   },
   listFill: {
     flex: 1, // la lista ocupa el resto del panel
   },
   routeBar: {
     flexDirection: "row",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingBottom: 8,
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingBottom: 10,
   },
   routeChip: {
-    flex: 1,
     paddingVertical: 8,
-    paddingHorizontal: 6,
-    borderRadius: 10,
-    backgroundColor: "#f1f3f5",
-    borderWidth: 1,
-    borderColor: "#dee2e6",
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: "#f3f4f6",
     alignItems: "center",
     justifyContent: "center",
   },
   routeChipActive: {
-    backgroundColor: "#1c7ed6",
-    borderColor: "#1c7ed6",
+    backgroundColor: "#17181a",
   },
   routeChipText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#495057",
+    color: "#6b7280",
   },
   routeChipTextActive: {
     color: "#fff",
