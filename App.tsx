@@ -160,8 +160,8 @@ export default function App() {
     ) {
       announcedRef.current.add(target.stop.id);
       const n = target.pkg.packageCount;
-      const frase = `Próxima parada. ${n} ${n === 1 ? "paquete" : "paquetes"}.`;
-      Speech.speak(frase, { language: "es-ES" });
+      const phrase = `Prochain arrêt. ${n} ${n === 1 ? "colis" : "colis"}.`;
+      Speech.speak(phrase, { language: "fr-FR" });
     }
   }, [distanceToNextPackage, routeState.nextPackage]);
 
@@ -239,17 +239,18 @@ export default function App() {
 
   // Texto informativo de GPS.
   const gpsInfo = coords
-    ? `GPS: ${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}` +
+    ? `GPS : ${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}` +
       (accuracy ? ` · ±${Math.round(accuracy)} m` : "") +
-      ` · dist. próxima parada: ${formatDistance(
+      ` · dist. prochain arrêt : ${formatDistance(
         routeState.nextStop ? haversineDistance(coords, routeState.nextStop) : null
       )}`
-    : errorMsg ?? "Esperando señal GPS…";
+    : errorMsg ?? "En attente du signal GPS…";
 
   // Diseño VERTICAL tipo mapa: el mapa ocupa toda la pantalla y la lista es un
   // panel deslizable desde abajo (colapsado = mapa grande; desplegado = lista).
   const { height: screenHeight, width: screenWidth } = useWindowDimensions();
-  const COLLAPSED_HEIGHT = 300; // altura del panel colapsado (controles visibles)
+  // Colapsado: solo los controles (sin lista) → más mapa. Desplegado: + lista.
+  const COLLAPSED_HEIGHT = 238;
   const expandedHeight = Math.round(screenHeight * 0.88);
 
   const [sheetExpanded, setSheetExpanded] = useState(false);
@@ -328,7 +329,7 @@ export default function App() {
                 color="#9ca3af"
               />
               <Text style={styles.handleText}>
-                {sheetExpanded ? "Ver mapa" : "Ver lista"}
+                {sheetExpanded ? "Voir la carte" : "Voir la liste"}
               </Text>
             </View>
           </Pressable>
@@ -371,7 +372,7 @@ export default function App() {
               ]}
             >
               <View style={styles.drawerHeader}>
-                <Text style={styles.drawerTitle}>Recorridos</Text>
+                <Text style={styles.drawerTitle}>Tournées</Text>
                 <Pressable onPress={closeDrawer} hitSlop={8}>
                   <Icon name="x" size={22} color="#6b7280" />
                 </Pressable>
@@ -396,7 +397,7 @@ export default function App() {
                         {r.name}
                       </Text>
                       <Text style={styles.drawerRowMeta}>
-                        {r.stops.length} paradas
+                        {r.stops.length} arrêts
                       </Text>
                     </View>
                     {active && <Icon name="check" size={20} color="#2563eb" />}

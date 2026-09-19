@@ -42,7 +42,7 @@ export default function DeliveryPanel({
       {/* Contexto: ahora / siguiente */}
       <View style={styles.context}>
         <View style={styles.contextRow}>
-          <Text style={styles.tag}>AHORA</Text>
+          <Text style={styles.tag}>ICI</Text>
           <Text style={styles.contextValue} numberOfLines={1}>
             {currentStop
               ? `${currentStop.order} · ${currentStop.address}`
@@ -50,9 +50,11 @@ export default function DeliveryPanel({
           </Text>
         </View>
         <View style={styles.contextRow}>
-          <Text style={styles.tag}>SIGUE</Text>
+          <Text style={styles.tag}>SUITE</Text>
           <Text style={styles.contextValueMuted} numberOfLines={1}>
-            {nextStop ? `${nextStop.order} · ${nextStop.address}` : "Fin de la ruta"}
+            {nextStop
+              ? `${nextStop.order} · ${nextStop.address}`
+              : "Fin de la tournée"}
             {nextStopDistance !== null ? `  ·  ${formatDistance(nextStopDistance)}` : ""}
           </Text>
         </View>
@@ -73,15 +75,15 @@ export default function DeliveryPanel({
         <View style={styles.deliverTextWrap}>
           {nextPackage ? (
             <>
-              <Text style={styles.deliverTitle}>ENTREGADO</Text>
+              <Text style={styles.deliverTitle}>LIVRÉ</Text>
               <Text style={styles.deliverSub} numberOfLines={1}>
                 {nextPackage.stop.order} · {nextPackage.stop.address} ·{" "}
                 {formatDistance(distanceToNextPackage)}
-                {alertActive ? "  · cerca" : ""}
+                {alertActive ? "  · proche" : ""}
               </Text>
             </>
           ) : (
-            <Text style={styles.deliverTitle}>Sin paquetes</Text>
+            <Text style={styles.deliverTitle}>Aucun colis</Text>
           )}
         </View>
       </TouchableOpacity>
@@ -102,7 +104,7 @@ export default function DeliveryPanel({
           onPress={onNearest}
         >
           <Icon name="map-pin" size={18} color="#fff" />
-          <Text style={styles.nearestText}>Más cercana</Text>
+          <Text style={styles.nearestText}>Plus proche</Text>
         </TouchableOpacity>
 
         <TouchableOpacity

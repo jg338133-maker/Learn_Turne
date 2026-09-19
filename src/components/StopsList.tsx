@@ -52,7 +52,7 @@ export default function StopsList({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Paradas</Text>
+        <Text style={styles.headerTitle}>Arrêts</Text>
         <View style={styles.headerCount}>
           <Text style={styles.headerCountText}>
             {q ? `${data.length}/${stops.length}` : stops.length}
@@ -68,7 +68,7 @@ export default function StopsList({
         <Icon name="search" size={18} color="#9ca3af" />
         <TextInput
           style={styles.search}
-          placeholder="Buscar dirección…"
+          placeholder="Rechercher une adresse…"
           placeholderTextColor="#9ca3af"
           value={query}
           onChangeText={setQuery}
@@ -86,8 +86,8 @@ export default function StopsList({
         ListEmptyComponent={
           <Text style={styles.empty}>
             {stops.length === 0
-              ? "Esta ruta aún no tiene paradas."
-              : "Sin resultados."}
+              ? "Cette tournée n'a pas encore d'arrêts."
+              : "Aucun résultat."}
           </Text>
         }
         renderItem={({ item }) => {
