@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from "react";
 import {
   Alert,
+  FlatList,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -32,28 +34,36 @@ export default function OrganizationScreen({ routeName, profile, stops, onSave, 
   }});
   const [selectedId, setSelectedId] = useState(profile.sections[0]?.id ?? null);
   const [message, setMessage] = useState<string | null>(null);
+  const [picker, setPicker] = useState<"start" | "end" | null>(null);
   const selected = useMemo(
     () => draft.sections.find((section) => section.id === selectedId),
     [draft.sections, selectedId]
   );
   const orderedStops = useMemo(() => [...stops].sort((a, b) => a.order - b.order), [stops]);
   const ownerOf = (stopId: number) => draft.sections.find((section) => section.stopIds?.includes(stopId));
+  const assignedStops = orderedStops.filter((stop) => selected?.stopIds?.includes(stop.id));
+  const startStop = assignedStops[0];
+  const endStop = assignedStops[assignedStops.length - 1];
 
-  const toggleStop = (stop: RouteStop) => {
-    if (!selectedId) return;
-    const owner = ownerOf(stop.id);
-    if (owner && owner.id !== selectedId) {
-      const text = `L'adresse « ${stop.address} » appartient déjà au secteur ${owner.id}. Retirez-la d'abord de ce secteur.`;
-      setMessage(text);
-      Alert.alert("Chevauchement impossible", text);
-      return;
-    }
+  const selectBoundary = (stop: RouteStop) => {
+    if (!selectedId || !picker) return;
+    const pickedIndex = orderedStops.findIndex((item) => item.id === stop.id);
+    const currentStart = startStop ? orderedStops.findIndex((item) => item.id === startStop.id) : pickedIndex;
+    const currentEnd = endStop ? orderedStops.findIndex((item) => item.id === endStop.id) : pickedIndex;
+    const startIndex = picker === "start" ? pickedIndex : Math.min(currentStart, pickedIndex);
+    const endIndex = picker === "end" ? pickedIndex : Math.max(currentEnd, pickedIndex);
+    const from = Math.min(startIndex, endIndex);
+    const to = Math.max(startIndex, endIndex);
+    const block = orderedStops.slice(from, to + 1);
     const next: OrganizationProfile = {
       ...draft,
       sections: draft.sections.map((section) => section.id === selectedId
-        ? { ...section, stopIds: section.stopIds?.includes(stop.id)
-            ? section.stopIds.filter((id) => id !== stop.id)
-            : [...(section.stopIds ?? []), stop.id] }
+        ? {
+            ...section,
+            stopIds: block.map((item) => item.id),
+            startOrder: block[0].order,
+            endOrder: block[block.length - 1].order,
+          }
         : section),
     };
     const error = validateProfile(next, orderedStops);
@@ -63,17 +73,8 @@ export default function OrganizationScreen({ routeName, profile, stops, onSave, 
       return;
     }
     setMessage(null);
-    setDraft({
-      ...next,
-      sections: next.sections.map((section) => {
-        const assigned = orderedStops.filter((item) => section.stopIds?.includes(item.id));
-        return assigned.length ? {
-          ...section,
-          startOrder: assigned[0].order,
-          endOrder: assigned[assigned.length - 1].order,
-        } : section;
-      }),
-    });
+    setDraft(next);
+    setPicker(null);
   };
 
   const updateSelected = (patch: Partial<NonNullable<typeof selected>>) => {
@@ -119,9 +120,9 @@ export default function OrganizationScreen({ routeName, profile, stops, onSave, 
           title="Comment organiser votre tournée ?"
           steps={[
             "Touchez un secteur, par exemple A1. La liste complète des adresses s'ouvre dans l'ordre de la tournée.",
-            "Cochez un bloc d'adresses consécutives. Vous pouvez couper un secteur au milieu d'une rue si cette rue réapparaît plus loin.",
-            "Une étiquette A1, B2, etc. signifie que l'adresse appartient déjà à un autre secteur.",
-            "Pour déplacer une limite, décochez d'abord l'adresse à l'extrémité du secteur actuel, puis cochez-la dans le secteur voisin.",
+            "Choisissez l'adresse de début, puis l'adresse de fin. Toutes les adresses comprises entre les deux seront ajoutées automatiquement.",
+            "Vous pouvez placer une limite au milieu d'une rue : seule la position dans l'ordre de la tournée compte.",
+            "Une étiquette A1, B2, etc. dans le menu signifie que l'adresse appartient déjà à ce secteur.",
             "Dans le plan de la remorque, touchez le secteur sélectionné puis la case de destination pour échanger leur position.",
             "Terminez avec « Enregistrer l'organisation ». Le chargement et le jeu utiliseront immédiatement cette configuration.",
           ]}
@@ -129,7 +130,7 @@ export default function OrganizationScreen({ routeName, profile, stops, onSave, 
         />
         <Text style={styles.step}>1 · DIVISER LA TOURNÉE</Text>
         <Text style={styles.help}>
-          Choisissez un secteur, puis sélectionnez un bloc continu d'adresses dans l'ordre.
+          Choisissez un secteur, puis définissez sa première et sa dernière adresse.
         </Text>
         <View style={styles.sectionList}>
           {draft.sections.map((section) => (
@@ -154,22 +155,25 @@ export default function OrganizationScreen({ routeName, profile, stops, onSave, 
               onChangeText={(name) => updateSelected({ name })}
               placeholder="Nom du secteur"
             />
-            <Text style={styles.streetTitle}>ADRESSES DANS L'ORDRE DE LA TOURNÉE</Text>
-            {orderedStops.map((stop) => {
-              const owner = ownerOf(stop.id);
-              const checked = owner?.id === selected.id;
-              return (
-                <Pressable key={stop.id} style={[styles.streetRow, checked && styles.streetRowChecked]} onPress={() => toggleStop(stop)}>
-                  <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-                    <Text style={styles.checkmark}>{checked ? "✓" : ""}</Text>
-                  </View>
-                  <View style={styles.streetText}>
-                    <Text style={styles.streetName}>{stop.order} · {stop.address}</Text>
-                  </View>
-                  {!!owner && owner.id !== selected.id && <Text style={styles.owner}>{owner.id}</Text>}
+            <Text style={styles.streetTitle}>PLAGE D'ADRESSES</Text>
+            <View style={styles.boundaryRow}>
+              <View style={styles.boundaryField}>
+                <Text style={styles.boundaryLabel}>DE</Text>
+                <Pressable style={styles.dropdown} onPress={() => setPicker("start")}>
+                  <Text style={styles.dropdownText} numberOfLines={2}>{startStop ? `${startStop.order} · ${startStop.address}` : "Choisir l'adresse A"}</Text>
+                  <Text style={styles.chevron}>⌄</Text>
                 </Pressable>
-              );
-            })}
+              </View>
+              <Text style={styles.toArrow}>→</Text>
+              <View style={styles.boundaryField}>
+                <Text style={styles.boundaryLabel}>À</Text>
+                <Pressable style={styles.dropdown} onPress={() => setPicker("end")}>
+                  <Text style={styles.dropdownText} numberOfLines={2}>{endStop ? `${endStop.order} · ${endStop.address}` : "Choisir l'adresse B"}</Text>
+                  <Text style={styles.chevron}>⌄</Text>
+                </Pressable>
+              </View>
+            </View>
+            <Text style={styles.rangeHelp}>{assignedStops.length} adresses seront incluses automatiquement.</Text>
           </View>
         )}
 
@@ -184,6 +188,32 @@ export default function OrganizationScreen({ routeName, profile, stops, onSave, 
           <Text style={styles.saveText}>ENREGISTRER L'ORGANISATION</Text>
         </Pressable>
       </ScrollView>
+      <Modal visible={picker !== null} animationType="slide" onRequestClose={() => setPicker(null)}>
+        <View style={styles.modalRoot}>
+          <View style={styles.modalHeader}>
+            <View>
+              <Text style={styles.modalTitle}>{picker === "start" ? "Adresse de début" : "Adresse de fin"}</Text>
+              <Text style={styles.modalSubtitle}>Sélectionnez une adresse dans l'ordre de la tournée</Text>
+            </View>
+            <Pressable style={styles.modalClose} onPress={() => setPicker(null)}><Text style={styles.modalCloseText}>✕</Text></Pressable>
+          </View>
+          <FlatList
+            data={orderedStops}
+            keyExtractor={(item) => String(item.id)}
+            initialNumToRender={30}
+            renderItem={({ item }) => {
+              const owner = ownerOf(item.id);
+              return (
+                <Pressable style={styles.optionRow} onPress={() => selectBoundary(item)}>
+                  <Text style={styles.optionOrder}>{item.order}</Text>
+                  <Text style={styles.optionAddress}>{item.address}</Text>
+                  {!!owner && <Text style={styles.owner}>{owner.id}</Text>}
+                </Pressable>
+              );
+            }}
+          />
+        </View>
+      </Modal>
     </FeatureScreen>
   );
 }
@@ -214,6 +244,23 @@ const styles = StyleSheet.create({
   streetName: { fontSize: 14, fontWeight: "800", color: "#17181a" },
   addresses: { fontSize: 11, color: "#6b7280", marginTop: 2, lineHeight: 15 },
   owner: { marginLeft: 8, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: "#e5e7eb", fontWeight: "900", color: "#4b5563" },
+  boundaryRow: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
+  boundaryField: { flex: 1 },
+  boundaryLabel: { fontSize: 11, fontWeight: "900", color: "#6b7280", marginBottom: 5 },
+  dropdown: { minHeight: 62, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 10, backgroundColor: "#f8fafc", padding: 10 },
+  dropdownText: { flex: 1, color: "#17181a", fontSize: 13, lineHeight: 17, fontWeight: "700" },
+  chevron: { fontSize: 22, color: "#6b7280", marginLeft: 5 },
+  toArrow: { fontSize: 20, fontWeight: "900", color: "#9ca3af", paddingBottom: 19 },
+  rangeHelp: { fontSize: 12, color: "#6b7280", marginTop: 8 },
+  modalRoot: { flex: 1, backgroundColor: "#f6f7f8" },
+  modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#FFCC00", paddingHorizontal: 16, paddingTop: 18, paddingBottom: 14 },
+  modalTitle: { fontSize: 20, fontWeight: "900", color: "#17181a" },
+  modalSubtitle: { fontSize: 12, color: "#5b4a13", marginTop: 2 },
+  modalClose: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.55)" },
+  modalCloseText: { fontSize: 20, fontWeight: "700", color: "#17181a" },
+  optionRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 13, backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#e5e7eb" },
+  optionOrder: { width: 44, fontSize: 13, fontWeight: "900", color: "#9ca3af" },
+  optionAddress: { flex: 1, fontSize: 15, fontWeight: "700", color: "#17181a" },
   error: { marginTop: 12, color: "#b91c1c", fontWeight: "700" },
   saveBtn: { marginTop: 18, backgroundColor: "#17181a", padding: 15, borderRadius: 12, alignItems: "center" },
   saveText: { color: "#FFCC00", fontSize: 14, fontWeight: "900", letterSpacing: 0.4 },
