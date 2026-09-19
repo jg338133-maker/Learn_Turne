@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { OrganizationProfile, PackageStop, RouteStop } from "../types";
-import { sectionForOrder } from "../utils/organization";
+import { sectionForStop } from "../utils/organization";
 import FeatureScreen from "./FeatureScreen";
 import Icon from "./Icon";
 import TrailerGrid from "./TrailerGrid";
@@ -33,7 +33,7 @@ export default function LoadingScreen({
   );
   const counts: Record<string, number> = {};
   for (const row of rows) {
-    const section = sectionForOrder(profile, row.stop.order);
+    const section = sectionForStop(profile, row.stop);
     if (section) counts[section.id] = (counts[section.id] ?? 0) + row.pkg.packageCount;
   }
   const loaded = rows.filter((row) => row.pkg.loaded).length;
@@ -61,7 +61,7 @@ export default function LoadingScreen({
               Chargez d'abord les dernières zones. Confirmez chaque adresse quand ses colis sont dans la remorque.
             </Text>
             {[...rows].reverse().map(({ pkg, stop }) => {
-              const section = sectionForOrder(profile, stop.order);
+              const section = sectionForStop(profile, stop);
               return (
                 <Pressable
                   key={stop.id}

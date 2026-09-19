@@ -36,6 +36,7 @@ export type RouteSection = {
   name: string;
   startOrder: number;
   endOrder: number;
+  streetNames?: string[];
 };
 
 /** Perfil personal guardado independientemente para cada tournée. */

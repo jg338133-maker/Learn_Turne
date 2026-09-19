@@ -31,7 +31,7 @@ import {
   findNearestStopIndex,
   PACKAGE_ALERT_DISTANCE,
 } from "./src/utils/routeLogic";
-import { createDefaultProfile, sectionForOrder } from "./src/utils/organization";
+import { createDefaultProfile, sectionForStop } from "./src/utils/organization";
 
 /** Claves de guardado en el almacenamiento del móvil. */
 const SELECTED_ROUTE_KEY = "learn_turne:selectedRoute:v1";
@@ -251,7 +251,7 @@ export default function App() {
         return prev.filter((p) => p.routeStopId !== stopId);
       }
       const stop = stops.find((item) => item.id === stopId);
-      const section = stop ? sectionForOrder(organization, stop.order) : undefined;
+      const section = stop ? sectionForStop(organization, stop) : undefined;
       return [...prev, {
         routeStopId: stopId,
         packageCount: 1,
@@ -274,7 +274,7 @@ export default function App() {
     setOrganization(next);
     setPackages((prev) => prev.map((pkg) => {
       const stop = stops.find((item) => item.id === pkg.routeStopId);
-      return { ...pkg, trailerZone: stop ? sectionForOrder(next, stop.order)?.id : undefined };
+      return { ...pkg, trailerZone: stop ? sectionForStop(next, stop)?.id : undefined };
     }));
     AsyncStorage.setItem(organizationKey(selectedRouteId), JSON.stringify(next)).catch(() => {});
   };
@@ -361,6 +361,7 @@ export default function App() {
       <OrganizationScreen
         routeName={activeRoute.name}
         profile={organization}
+        stops={stops}
         onSave={handleSaveOrganization}
         onClose={() => setScreenMode("map")}
       />
@@ -392,7 +393,7 @@ export default function App() {
   }
 
   const nextPackageZone = routeState.nextPackage
-    ? sectionForOrder(organization, routeState.nextPackage.stop.order)?.id ?? null
+    ? sectionForStop(organization, routeState.nextPackage.stop)?.id ?? null
     : null;
 
   return (
@@ -432,7 +433,7 @@ export default function App() {
             <View style={styles.missedTextWrap}>
               <Text style={styles.missedTitle}>COLIS OUBLIÉ</Text>
               <Text style={styles.missedAddress} numberOfLines={1}>
-                {missedPackage.stop.address} · {sectionForOrder(organization, missedPackage.stop.order)?.id ?? "—"}
+                {missedPackage.stop.address} · {sectionForStop(organization, missedPackage.stop)?.id ?? "—"}
               </Text>
             </View>
             <Pressable style={styles.missedSecondary} onPress={() => setCurrentIndex(missedPackage.index)}>

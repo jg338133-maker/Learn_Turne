@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { OrganizationProfile, RouteStop } from "../types";
-import { sectionForOrder } from "../utils/organization";
+import { sectionForStop } from "../utils/organization";
 import FeatureScreen from "./FeatureScreen";
 import TrailerGame3D from "./TrailerGame3D";
 
@@ -47,7 +47,7 @@ export default function PracticeScreen({ routeName, stops, profile, onClose }: P
 
   const choose = (chosenId: string) => {
     if (!current || feedback) return;
-    const expected = sectionForOrder(profile, current.order);
+    const expected = sectionForStop(profile, current);
     if (!expected) return;
     const answer = { stop: current, chosenId, expectedId: expected.id };
     if (difficulty === "examen") {

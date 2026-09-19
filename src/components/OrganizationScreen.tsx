@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -7,30 +8,62 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { OrganizationProfile } from "../types";
-import { validateProfile } from "../utils/organization";
+import { OrganizationProfile, RouteStop } from "../types";
+import { streetNameFromAddress, validateProfile, withStreetAssignments } from "../utils/organization";
 import FeatureScreen from "./FeatureScreen";
 import TrailerGrid from "./TrailerGrid";
 
 type Props = {
   routeName: string;
   profile: OrganizationProfile;
+  stops: RouteStop[];
   onSave: (profile: OrganizationProfile) => void;
   onClose: () => void;
 };
 
-export default function OrganizationScreen({ routeName, profile, onSave, onClose }: Props) {
-  const [draft, setDraft] = useState<OrganizationProfile>(() => ({
-    ...profile,
-    sections: profile.sections.map((section) => ({ ...section })),
+export default function OrganizationScreen({ routeName, profile, stops, onSave, onClose }: Props) {
+  const [draft, setDraft] = useState<OrganizationProfile>(() => {
+    const migrated = withStreetAssignments(profile, stops);
+    return {
+    ...migrated,
+    sections: migrated.sections.map((section) => ({ ...section, streetNames: [...(section.streetNames ?? [])] })),
     slotOrder: [...profile.slotOrder],
-  }));
+  }});
   const [selectedId, setSelectedId] = useState(profile.sections[0]?.id ?? null);
   const [message, setMessage] = useState<string | null>(null);
   const selected = useMemo(
     () => draft.sections.find((section) => section.id === selectedId),
     [draft.sections, selectedId]
   );
+  const streets = useMemo(() => {
+    const groups = new Map<string, RouteStop[]>();
+    for (const stop of stops) {
+      const street = streetNameFromAddress(stop.address);
+      groups.set(street, [...(groups.get(street) ?? []), stop]);
+    }
+    return [...groups.entries()].map(([name, addresses]) => ({ name, addresses }));
+  }, [stops]);
+  const ownerOf = (street: string) => draft.sections.find((section) => section.streetNames?.includes(street));
+
+  const toggleStreet = (street: string) => {
+    if (!selectedId) return;
+    const owner = ownerOf(street);
+    if (owner && owner.id !== selectedId) {
+      const text = `La rue « ${street} » appartient déjà au secteur ${owner.id}. Retirez-la d'abord de ce secteur pour éviter un chevauchement.`;
+      setMessage(text);
+      Alert.alert("Chevauchement impossible", text);
+      return;
+    }
+    setMessage(null);
+    setDraft((current) => ({
+      ...current,
+      sections: current.sections.map((section) => section.id === selectedId
+        ? { ...section, streetNames: section.streetNames?.includes(street)
+            ? section.streetNames.filter((name) => name !== street)
+            : [...(section.streetNames ?? []), street] }
+        : section),
+    }));
+  };
 
   const updateSelected = (patch: Partial<NonNullable<typeof selected>>) => {
     if (!selectedId) return;
@@ -73,7 +106,7 @@ export default function OrganizationScreen({ routeName, profile, onSave, onClose
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.step}>1 · DIVISER LA TOURNÉE</Text>
         <Text style={styles.help}>
-          Choisissez un secteur puis modifiez son nom et sa plage d'ordre.
+          Choisissez un secteur, puis sélectionnez les rues qui lui appartiennent.
         </Text>
         <View style={styles.sectionList}>
           {draft.sections.map((section) => (
@@ -84,7 +117,7 @@ export default function OrganizationScreen({ routeName, profile, onSave, onClose
             >
               <Text style={styles.sectionId}>{section.id}</Text>
               <Text style={styles.sectionName} numberOfLines={1}>{section.name}</Text>
-              <Text style={styles.sectionRange}>{section.startOrder}–{section.endOrder}</Text>
+              <Text style={styles.sectionRange}>{section.streetNames?.length ?? 0} rues</Text>
             </Pressable>
           ))}
         </View>
@@ -98,26 +131,23 @@ export default function OrganizationScreen({ routeName, profile, onSave, onClose
               onChangeText={(name) => updateSelected({ name })}
               placeholder="Nom du secteur"
             />
-            <View style={styles.rangeRow}>
-              <View style={styles.rangeField}>
-                <Text style={styles.label}>Depuis</Text>
-                <TextInput
-                  style={styles.input}
-                  value={String(selected.startOrder)}
-                  onChangeText={(value) => updateSelected({ startOrder: Number(value) || 0 })}
-                  keyboardType="number-pad"
-                />
-              </View>
-              <View style={styles.rangeField}>
-                <Text style={styles.label}>Jusqu'à</Text>
-                <TextInput
-                  style={styles.input}
-                  value={String(selected.endOrder)}
-                  onChangeText={(value) => updateSelected({ endOrder: Number(value) || 0 })}
-                  keyboardType="number-pad"
-                />
-              </View>
-            </View>
+            <Text style={styles.streetTitle}>RUES ET ADRESSES</Text>
+            {streets.map(({ name, addresses }) => {
+              const owner = ownerOf(name);
+              const checked = owner?.id === selected.id;
+              return (
+                <Pressable key={name} style={[styles.streetRow, checked && styles.streetRowChecked]} onPress={() => toggleStreet(name)}>
+                  <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+                    <Text style={styles.checkmark}>{checked ? "✓" : ""}</Text>
+                  </View>
+                  <View style={styles.streetText}>
+                    <Text style={styles.streetName}>{name}</Text>
+                    <Text style={styles.addresses} numberOfLines={2}>{addresses.map((stop) => stop.address).join(" · ")}</Text>
+                  </View>
+                  {!!owner && owner.id !== selected.id && <Text style={styles.owner}>{owner.id}</Text>}
+                </Pressable>
+              );
+            })}
           </View>
         )}
 
@@ -152,9 +182,16 @@ const styles = StyleSheet.create({
   editor: { backgroundColor: "#fff", padding: 14, borderRadius: 12, marginVertical: 14 },
   editorTitle: { fontSize: 16, fontWeight: "800", marginBottom: 10, color: "#17181a" },
   input: { borderWidth: 1, borderColor: "#d1d5db", borderRadius: 9, padding: 10, fontSize: 16, color: "#17181a", backgroundColor: "#fff" },
-  rangeRow: { flexDirection: "row", gap: 10, marginTop: 10 },
-  rangeField: { flex: 1 },
-  label: { fontSize: 12, fontWeight: "700", color: "#6b7280", marginBottom: 4 },
+  streetTitle: { fontSize: 11, fontWeight: "900", letterSpacing: 0.8, color: "#6b7280", marginTop: 15, marginBottom: 7 },
+  streetRow: { flexDirection: "row", alignItems: "center", paddingVertical: 9, borderTopWidth: 1, borderTopColor: "#e5e7eb" },
+  streetRowChecked: { backgroundColor: "#fff8dc" },
+  checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: "#9ca3af", alignItems: "center", justifyContent: "center", marginRight: 10 },
+  checkboxChecked: { backgroundColor: "#17181a", borderColor: "#17181a" },
+  checkmark: { color: "#FFCC00", fontWeight: "900" },
+  streetText: { flex: 1 },
+  streetName: { fontSize: 14, fontWeight: "800", color: "#17181a" },
+  addresses: { fontSize: 11, color: "#6b7280", marginTop: 2, lineHeight: 15 },
+  owner: { marginLeft: 8, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: "#e5e7eb", fontWeight: "900", color: "#4b5563" },
   error: { marginTop: 12, color: "#b91c1c", fontWeight: "700" },
   saveBtn: { marginTop: 18, backgroundColor: "#17181a", padding: 15, borderRadius: 12, alignItems: "center" },
   saveText: { color: "#FFCC00", fontSize: 14, fontWeight: "900", letterSpacing: 0.4 },
