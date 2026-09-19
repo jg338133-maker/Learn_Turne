@@ -90,10 +90,10 @@ export default function PracticeScreen({ routeName, stops, profile, onClose }: P
               </Pressable>
             ))}
           </View>
-          <TrailerGame3D profile={profile} />
           <Pressable style={styles.primary} onPress={start}>
-            <Text style={styles.primaryText}>GÉNÉRER LES COLIS</Text>
+            <Text style={styles.primaryText}>COMMENCER LA PARTIE</Text>
           </Pressable>
+          <TrailerGame3D profile={profile} />
         </View>
       </FeatureScreen>
     );
