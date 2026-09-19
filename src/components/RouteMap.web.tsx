@@ -255,7 +255,7 @@ export default function RouteMap({
         ];
         new maplibregl.Popup({ offset: 12 })
           .setLngLat(coords)
-          .setHTML(`<b>Parada ${p.order}</b><br/>${p.address}`)
+          .setHTML(`<b>Arrêt ${p.order}</b><br/>${p.address}`)
           .addTo(activeMap);
       });
       activeMap.on("mouseenter", "stops-circles", () => {
@@ -275,8 +275,9 @@ export default function RouteMap({
         });
       }
       // MapLibre a veces no hace el primer repintado en este layout hasta que
-      // se fuerza un resize. Lo forzamos en bucle corto hasta que las teselas
-      // están cargadas (y luego paramos), para un arranque fiable.
+      // se dispara un evento 'resize' de ventana. Lo forzamos varias veces
+      // durante ~5 s (resize del mapa + evento de ventana + repintado) para un
+      // arranque fiable, independientemente de cuándo carguen las teselas.
       let ticks = 0;
       repaintTimer = setInterval(() => {
         if (mapRef.current !== map) {
@@ -284,9 +285,10 @@ export default function RouteMap({
           return;
         }
         activeMap.resize();
+        window.dispatchEvent(new Event("resize"));
         activeMap.triggerRepaint();
         ticks += 1;
-        if (activeMap.areTilesLoaded() || ticks > 30) {
+        if (ticks > 25) {
           if (repaintTimer) clearInterval(repaintTimer);
         }
       }, 200);
