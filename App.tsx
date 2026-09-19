@@ -417,7 +417,13 @@ export default function App() {
         </View>
 
         {/* Botón de menú (arriba izquierda) */}
-        <Pressable style={styles.menuBtn} onPress={openDrawer} hitSlop={8}>
+        <Pressable
+          style={styles.menuBtn}
+          onPress={openDrawer}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Ouvrir le menu"
+        >
           <Icon name="menu" size={24} color="#17181a" />
         </Pressable>
 

@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { OrganizationProfile, RouteStop } from "../types";
 import { sectionForOrder } from "../utils/organization";
 import FeatureScreen from "./FeatureScreen";
-import TrailerGrid from "./TrailerGrid";
+import TrailerGame3D from "./TrailerGame3D";
 
 type Difficulty = "debutant" | "normal" | "examen";
 type Answer = { stop: RouteStop; chosenId: string; expectedId: string };
@@ -90,7 +90,7 @@ export default function PracticeScreen({ routeName, stops, profile, onClose }: P
               </Pressable>
             ))}
           </View>
-          <TrailerGrid profile={profile} compact />
+          <TrailerGame3D profile={profile} />
           <Pressable style={styles.primary} onPress={start}>
             <Text style={styles.primaryText}>GÉNÉRER LES COLIS</Text>
           </Pressable>
@@ -136,11 +136,13 @@ export default function PracticeScreen({ routeName, stops, profile, onClose }: P
           )}
         </View>
         <Text style={styles.question}>Dans quelle case le placeriez-vous ?</Text>
-        <TrailerGrid
+        <TrailerGame3D
           profile={profile}
           selectedId={feedback?.chosen}
+          expectedId={feedback?.expected}
+          parcelLabel={`N° ${current.order}`}
           onPressSlot={choose}
-          compact
+          disabled={!!feedback}
         />
         {!!feedback && (
           <View style={[styles.feedback, feedback.chosen === feedback.expected ? styles.correct : styles.wrong]}>
