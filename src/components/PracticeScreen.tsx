@@ -75,16 +75,23 @@ export default function PracticeScreen({ routeName, stops, profile, onClose }: P
           <Text style={styles.help}>
             Des colis fictifs seront générés. Placez chaque adresse dans la bonne case de votre remorque.
           </Text>
+          <View style={styles.prerequisite}>
+            <Text style={styles.prerequisiteTitle}>AVANT DE JOUER</Text>
+            <Text style={styles.prerequisiteText}>
+              Vous devez d'abord organiser la tournée dans « Mon organisation ». Créez les secteurs qui vous conviennent, attribuez les rues à chaque secteur et choisissez leur position dans la remorque. Le jeu reprendra exactement votre organisation personnelle.
+            </Text>
+          </View>
           <InstructionCard
             title="Comment jouer ?"
             steps={[
+              "Vérifiez que toutes les rues utiles sont réparties dans vos secteurs A1, A2, B1, B2, C1 et C2.",
               "Choisissez une difficulté : Débutant affiche aussi le numéro d'ordre, Normal masque cet indice et Examen donne le résultat uniquement à la fin.",
               "Appuyez sur « Commencer la partie ». Une adresse et un colis fictif apparaissent.",
               "Touchez la case de la remorque où vous chargeriez réellement ce colis.",
               "Vert signifie que le placement est correct. Rouge indique votre choix et la bonne case s'allume en vert.",
               "Appuyez sur « Suivant » jusqu'au résultat final.",
             ]}
-            note="Le jeu utilise votre propre division des rues. Modifiez-la dans « Mon organisation » avant de vous entraîner."
+            note="Il n'existe pas une seule bonne division : utilisez les secteurs qui correspondent à votre façon réelle de charger et de mémoriser la tournée."
           />
           <View style={styles.levels}>
             {([
@@ -177,6 +184,9 @@ const styles = StyleSheet.create({
   practice: { padding: 18, gap: 16 },
   hero: { fontSize: 24, fontWeight: "900", color: "#17181a" },
   help: { fontSize: 15, lineHeight: 21, color: "#6b7280" },
+  prerequisite: { backgroundColor: "#17181a", borderRadius: 14, padding: 14, borderLeftWidth: 6, borderLeftColor: "#FFCC00" },
+  prerequisiteTitle: { color: "#FFCC00", fontSize: 12, fontWeight: "900", letterSpacing: 1 },
+  prerequisiteText: { color: "#fff", fontSize: 14, lineHeight: 20, marginTop: 6, fontWeight: "600" },
   levels: { gap: 8 },
   level: { padding: 13, borderRadius: 12, backgroundColor: "#fff", borderWidth: 1, borderColor: "#e5e7eb" },
   levelSelected: { backgroundColor: "#FFF6D6", borderColor: "#17181a", borderWidth: 2 },
