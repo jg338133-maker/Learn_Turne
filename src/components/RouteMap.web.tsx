@@ -29,8 +29,8 @@ function markerColor(
 ): string {
   if (hasActivePackage(stop.id, packages)) return "#e03131"; // paquete activo → rojo
   if (index < currentIndex) return "#2f9e44"; // ya pasada → verde
-  if (index === currentIndex) return "#1c7ed6"; // actual → azul
-  if (index === currentIndex + 1) return "#f76707"; // siguiente → naranja
+  if (index === currentIndex) return "#1a1a1a"; // actual → negro (La Poste)
+  if (index === currentIndex + 1) return "#FFCC00"; // siguiente → amarillo (La Poste)
   return "#868e96"; // pendiente → gris
 }
 

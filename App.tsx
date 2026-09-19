@@ -400,7 +400,7 @@ export default function App() {
                         {r.stops.length} arrêts
                       </Text>
                     </View>
-                    {active && <Icon name="check" size={20} color="#2563eb" />}
+                    {active && <Icon name="check" size={20} color="#1a1a1a" />}
                   </Pressable>
                 );
               })}
@@ -476,15 +476,15 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 12,
     left: 12,
-    width: 44,
-    height: 44,
+    width: 46,
+    height: 46,
     borderRadius: 12,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FFCC00", // amarillo La Poste
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
+    shadowOpacity: 0.22,
     shadowRadius: 6,
     elevation: 5,
   },
@@ -518,8 +518,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingBottom: 14,
     marginBottom: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f1f2f4",
+    borderBottomWidth: 3,
+    borderBottomColor: "#FFCC00", // acento La Poste
   },
   drawerTitle: {
     fontSize: 20,
@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   drawerRowActive: {
-    backgroundColor: "#eff6ff",
+    backgroundColor: "#FFF6D6", // amarillo claro La Poste
   },
   drawerRowText: {
     flex: 1,
@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
     color: "#374151",
   },
   drawerRowNameActive: {
-    color: "#2563eb",
+    color: "#1a1a1a",
     fontWeight: "800",
   },
   drawerRowMeta: {
