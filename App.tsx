@@ -307,6 +307,7 @@ export default function App() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
+            style={styles.routeScroll}
             contentContainerStyle={styles.routeBar}
           >
             {ROUTES.map((r) => {
@@ -422,16 +423,21 @@ const styles = StyleSheet.create({
   listFill: {
     flex: 1, // la lista ocupa el resto del panel
   },
+  routeScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+  },
   routeBar: {
     flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     paddingHorizontal: 14,
     paddingBottom: 10,
   },
   routeChip: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 999,
+    height: 36,
+    paddingHorizontal: 16,
+    borderRadius: 18,
     backgroundColor: "#f3f4f6",
     alignItems: "center",
     justifyContent: "center",
