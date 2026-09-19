@@ -24,8 +24,6 @@ export const ROUTE2_STOPS: RouteStop[] = [
   { id: 15, order: 15, address: "Route de Riaz 79", latitude: 46.627743, longitude: 7.059264 },
   { id: 16, order: 16, address: "Route de Riaz 71", latitude: 46.6264, longitude: 7.059208 },
   { id: 17, order: 17, address: "Route de Riaz 21", latitude: 46.623033, longitude: 7.058073 },
-  { id: 18, order: 18, address: "Route de Riaz 19", latitude: 46.627214, longitude: 7.059475 }, // ⚠️ approx
-  { id: 19, order: 19, address: "Route de Riaz 17", latitude: 46.626753, longitude: 7.059463 }, // ⚠️ approx
   { id: 20, order: 20, address: "Route de Riaz 15", latitude: 46.622457, longitude: 7.058022 },
   { id: 21, order: 21, address: "Route de Riaz 13", latitude: 46.622467, longitude: 7.05797 }, // ⚠️ approx
   { id: 22, order: 22, address: "Chemin de Folliéran 20", latitude: 46.622735, longitude: 7.057532 }, // ⚠️ approx
