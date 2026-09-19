@@ -103,7 +103,7 @@ export default function DeliveryPanel({
           activeOpacity={0.85}
           onPress={onNearest}
         >
-          <Icon name="map-pin" size={18} color="#fff" />
+          <Icon name="map-pin" size={18} color="#1a1a1a" />
           <Text style={styles.nearestText}>Plus proche</Text>
         </TouchableOpacity>
 
@@ -219,12 +219,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#2563eb",
+    backgroundColor: "#FFCC00", // amarillo La Poste
   },
   nearestText: {
-    color: "#fff",
+    color: "#1a1a1a",
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "800",
   },
   gpsInfo: {
     fontSize: 11,

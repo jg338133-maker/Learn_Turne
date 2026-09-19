@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   rowCurrent: {
-    backgroundColor: "#eff6ff",
+    backgroundColor: "#FFF6D6", // amarillo claro La Poste
   },
   orderArea: {
     width: 40,
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     color: "#9ca3af",
   },
   orderCurrent: {
-    color: "#2563eb",
+    color: "#1a1a1a",
   },
   addressArea: {
     flex: 1,
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   address: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#2563eb",
+    color: "#1f2937",
   },
   addressPackage: {
     color: "#dc2626",
