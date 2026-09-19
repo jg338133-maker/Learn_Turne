@@ -140,8 +140,8 @@ export default function RouteMap({
         fillOpacity: 1,
       })
         .bindPopup(
-          `<b>Stop ${stop.order}</b> · ${stop.address}<br/>${
-            count > 0 ? `${count} paquete(s)` : "Sin paquetes"
+          `<b>Arrêt ${stop.order}</b> · ${stop.address}<br/>${
+            count > 0 ? `${count} colis` : "Aucun colis"
           }`
         )
         .addTo(layer);
