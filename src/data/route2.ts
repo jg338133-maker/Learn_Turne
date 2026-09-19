@@ -34,10 +34,10 @@ export const ROUTE2_STOPS: RouteStop[] = [
   { id: 25, order: 25, address: "Chemin de Folliéran 40", latitude: 46.622357, longitude: 7.057935 },
   { id: 26, order: 26, address: "Chemin de Folliéran 42", latitude: 46.622735, longitude: 7.057532 }, // ⚠️ approx
   { id: 27, order: 27, address: "Chemin de Folliéran 44", latitude: 46.622735, longitude: 7.057532 }, // ⚠️ approx
-  { id: 28, order: 28, address: "Route de Riaz 3A", latitude: 46.628781, longitude: 7.059822 }, // ⚠️ approx
-  { id: 29, order: 29, address: "Route de Riaz 3B", latitude: 46.627214, longitude: 7.059475 }, // ⚠️ approx
-  { id: 30, order: 30, address: "Route de Riaz 1B", latitude: 46.626753, longitude: 7.059463 }, // ⚠️ approx
-  { id: 31, order: 31, address: "Route de Riaz 1", latitude: 46.627214, longitude: 7.059475 }, // ⚠️ approx
+  { id: 28, order: 28, address: "Route de Riaz 3A", latitude: 46.621438, longitude: 7.057938 }, // 📍 plus code
+  { id: 29, order: 29, address: "Route de Riaz 3B", latitude: 46.621563, longitude: 7.057813 }, // 📍 plus code
+  { id: 30, order: 30, address: "Route de Riaz 1B", latitude: 46.621563, longitude: 7.057813 }, // 📍 plus code
+  { id: 31, order: 31, address: "Route de Riaz 1", latitude: 46.621188, longitude: 7.057938 }, // 📍 plus code
   { id: 32, order: 32, address: "Route de Riaz 2", latitude: 46.621274, longitude: 7.058526 },
   { id: 33, order: 33, address: "Route de Riaz 4", latitude: 46.621548, longitude: 7.058409 },
   { id: 34, order: 34, address: "Route de Riaz 6", latitude: 46.621359, longitude: 7.058397 },
