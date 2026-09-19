@@ -248,12 +248,37 @@ export default function App() {
 
   // Diseño VERTICAL tipo mapa: el mapa ocupa toda la pantalla y la lista es un
   // panel deslizable desde abajo (colapsado = mapa grande; desplegado = lista).
-  const { height: screenHeight } = useWindowDimensions();
+  const { height: screenHeight, width: screenWidth } = useWindowDimensions();
   const COLLAPSED_HEIGHT = 300; // altura del panel colapsado (controles visibles)
   const expandedHeight = Math.round(screenHeight * 0.88);
 
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const sheetHeight = useRef(new Animated.Value(COLLAPSED_HEIGHT)).current;
+
+  // --- Menú lateral izquierdo (drawer) con las rutas ---
+  const DRAWER_WIDTH = Math.min(320, Math.round(screenWidth * 0.82));
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawerX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
+
+  const openDrawer = () => {
+    setDrawerOpen(true);
+    Animated.timing(drawerX, {
+      toValue: 0,
+      duration: 220,
+      useNativeDriver: false,
+    }).start();
+  };
+  const closeDrawer = () => {
+    Animated.timing(drawerX, {
+      toValue: -DRAWER_WIDTH,
+      duration: 200,
+      useNativeDriver: false,
+    }).start(() => setDrawerOpen(false));
+  };
+  const pickRoute = (id: string) => {
+    setSelectedRouteId(id);
+    closeDrawer();
+  };
 
   const toggleSheet = () => {
     const target = sheetExpanded ? COLLAPSED_HEIGHT : expandedHeight;
@@ -286,6 +311,11 @@ export default function App() {
           />
         </View>
 
+        {/* Botón de menú (arriba izquierda) */}
+        <Pressable style={styles.menuBtn} onPress={openDrawer} hitSlop={8}>
+          <Icon name="menu" size={24} color="#17181a" />
+        </Pressable>
+
         {/* Panel deslizable desde abajo */}
         <Animated.View style={[styles.sheet, { height: sheetHeight }]}>
           {/* Asa para desplegar/plegar */}
@@ -302,35 +332,6 @@ export default function App() {
               </Text>
             </View>
           </Pressable>
-
-          {/* Selector de recorrido (scroll horizontal) */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.routeScroll}
-            contentContainerStyle={styles.routeBar}
-          >
-            {ROUTES.map((r) => {
-              const active = r.id === selectedRouteId;
-              return (
-                <Pressable
-                  key={r.id}
-                  style={[styles.routeChip, active && styles.routeChipActive]}
-                  onPress={() => setSelectedRouteId(r.id)}
-                >
-                  <Text
-                    style={[
-                      styles.routeChipText,
-                      active && styles.routeChipTextActive,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {r.name}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
 
           {/* Controles operativos (siempre visibles) */}
           <DeliveryPanel
@@ -358,6 +359,53 @@ export default function App() {
             />
           </View>
         </Animated.View>
+
+        {/* Menú lateral izquierdo (rutas) */}
+        {drawerOpen && (
+          <>
+            <Pressable style={styles.backdrop} onPress={closeDrawer} />
+            <Animated.View
+              style={[
+                styles.drawer,
+                { width: DRAWER_WIDTH, transform: [{ translateX: drawerX }] },
+              ]}
+            >
+              <View style={styles.drawerHeader}>
+                <Text style={styles.drawerTitle}>Recorridos</Text>
+                <Pressable onPress={closeDrawer} hitSlop={8}>
+                  <Icon name="x" size={22} color="#6b7280" />
+                </Pressable>
+              </View>
+
+              {ROUTES.map((r) => {
+                const active = r.id === selectedRouteId;
+                return (
+                  <Pressable
+                    key={r.id}
+                    style={[styles.drawerRow, active && styles.drawerRowActive]}
+                    onPress={() => pickRoute(r.id)}
+                  >
+                    <View style={styles.drawerRowText}>
+                      <Text
+                        style={[
+                          styles.drawerRowName,
+                          active && styles.drawerRowNameActive,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {r.name}
+                      </Text>
+                      <Text style={styles.drawerRowMeta}>
+                        {r.stops.length} paradas
+                      </Text>
+                    </View>
+                    {active && <Icon name="check" size={20} color="#2563eb" />}
+                  </Pressable>
+                );
+              })}
+            </Animated.View>
+          </>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -422,6 +470,86 @@ const styles = StyleSheet.create({
   },
   listFill: {
     flex: 1, // la lista ocupa el resto del panel
+  },
+  menuBtn: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  backdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    zIndex: 40,
+  },
+  drawer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    bottom: 0,
+    backgroundColor: "#ffffff",
+    paddingTop: 20,
+    zIndex: 50,
+    shadowColor: "#000",
+    shadowOffset: { width: 2, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 16,
+  },
+  drawerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 18,
+    paddingBottom: 14,
+    marginBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f2f4",
+  },
+  drawerTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#17181a",
+  },
+  drawerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  drawerRowActive: {
+    backgroundColor: "#eff6ff",
+  },
+  drawerRowText: {
+    flex: 1,
+  },
+  drawerRowName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  drawerRowNameActive: {
+    color: "#2563eb",
+    fontWeight: "800",
+  },
+  drawerRowMeta: {
+    fontSize: 13,
+    color: "#9ca3af",
+    marginTop: 2,
   },
   routeScroll: {
     flexGrow: 0,
