@@ -35,9 +35,9 @@ function loadMapLibre(): Promise<typeof ML> {
 
     const handleLoad = () => {
       if (root.maplibregl) resolve(root.maplibregl);
-      else reject(new Error("MapLibre se cargó sin exponer su API global."));
+      else reject(new Error("MapLibre a été chargé sans exposer son API globale."));
     };
-    const handleError = () => reject(new Error("No se pudo cargar MapLibre."));
+    const handleError = () => reject(new Error("Impossible de charger MapLibre."));
 
     script.addEventListener("load", handleLoad, { once: true });
     script.addEventListener("error", handleError, { once: true });
@@ -294,7 +294,7 @@ export default function RouteMap({
     };
 
     initialise().catch((error) => {
-      if (!disposed) console.error("No se pudo iniciar el mapa 3D:", error);
+      if (!disposed) console.error("Impossible de démarrer la carte 3D :", error);
     });
 
     return () => {

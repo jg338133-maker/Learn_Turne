@@ -105,11 +105,11 @@ export default function RouteMap({
                 latitude: stop.latitude,
                 longitude: stop.longitude,
               }}
-              title={`Stop ${stop.order} · ${stop.address}`}
+              title={`Arrêt ${stop.order} · ${stop.address}`}
               description={
                 count > 0
-                  ? `${count} paquete(s)`
-                  : "Sin paquetes"
+                  ? `${count} colis`
+                  : "Aucun colis"
               }
               pinColor={markerColor(index, currentIndex, stop, packages)}
             />
