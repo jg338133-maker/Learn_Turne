@@ -18,12 +18,9 @@ import RouteMap from "./src/components/RouteMap";
 import DeliveryPanel from "./src/components/DeliveryPanel";
 import StopsList from "./src/components/StopsList";
 import Icon from "./src/components/Icon";
-import OrganizationScreen from "./src/components/OrganizationScreen";
-import PracticeScreen from "./src/components/PracticeScreen";
-import LoadingScreen from "./src/components/LoadingScreen";
 import { useLocation } from "./src/hooks/useLocation";
 import { ROUTES } from "./src/data/routes";
-import { OrganizationProfile, PackageStop, RouteStop } from "./src/types";
+import { PackageStop, RouteStop } from "./src/types";
 import { haversineDistance, formatDistance } from "./src/utils/distance";
 import {
   autoAdvanceIndex,
@@ -31,13 +28,10 @@ import {
   findNearestStopIndex,
   PACKAGE_ALERT_DISTANCE,
 } from "./src/utils/routeLogic";
-import { createDefaultProfile, sectionForStop } from "./src/utils/organization";
 
 /** Claves de guardado en el almacenamiento del móvil. */
 const SELECTED_ROUTE_KEY = "learn_turne:selectedRoute:v1";
 const packagesKey = (routeId: string) => `learn_turne:packages:v1:${routeId}`;
-const organizationKey = (routeId: string) => `learn_turne:organization:v1:${routeId}`;
-type ScreenMode = "map" | "organization" | "practice" | "loading";
 
 /**
  * Pantalla principal. Junta todas las piezas:
@@ -61,10 +55,6 @@ export default function App() {
 
   // Paquetes del día de la ruta activa (se cargan a mano y se guardan por ruta).
   const [packages, setPackages] = useState<PackageStop[]>([]);
-  const [organization, setOrganization] = useState<OrganizationProfile>(() =>
-    createDefaultProfile(ROUTES[0].id, ROUTES[0].stops)
-  );
-  const [screenMode, setScreenMode] = useState<ScreenMode>("map");
 
   // Flags de carga: bootLoaded = ya sabemos qué ruta estaba elegida;
   // packagesReady = ya cargamos los paquetes de la ruta actual (evita pisarlos).
@@ -109,23 +99,6 @@ export default function App() {
     };
   }, [selectedRouteId, bootLoaded]);
 
-  // Cargar la organización personal de la tournée o crear una por defecto.
-  useEffect(() => {
-    if (!bootLoaded) return;
-    let cancelled = false;
-    (async () => {
-      let next = createDefaultProfile(activeRoute.id, activeRoute.stops);
-      try {
-        const raw = await AsyncStorage.getItem(organizationKey(activeRoute.id));
-        if (raw) next = JSON.parse(raw) as OrganizationProfile;
-      } catch {
-        // mantenemos el perfil recomendado
-      }
-      if (!cancelled) setOrganization(next);
-    })();
-    return () => { cancelled = true; };
-  }, [activeRoute.id, activeRoute.stops, bootLoaded]);
-
   // Guardar la ruta seleccionada.
   useEffect(() => {
     if (!bootLoaded) return;
@@ -161,17 +134,6 @@ export default function App() {
     distanceToNextPackage !== null &&
     distanceToNextPackage <= PACKAGE_ALERT_DISTANCE;
 
-  // Paquete activo que ha quedado detrás de la posición actual.
-  const missedPackage = useMemo(() => {
-    for (let i = 0; i < currentIndex; i += 1) {
-      const pkg = packages.find(
-        (item) => item.routeStopId === stops[i]?.id && item.packageCount > 0 && !item.delivered
-      );
-      if (pkg && stops[i]) return { stop: stops[i], pkg, index: i };
-    }
-    return null;
-  }, [currentIndex, packages, stops]);
-
   // Distancia (línea recta, sin servicios externos) a la próxima parada.
   const nextStopDistance = useMemo(() => {
     if (!coords || !routeState.nextStop) return null;
@@ -204,19 +166,15 @@ export default function App() {
   }, [distanceToNextPackage, routeState.nextPackage]);
 
   // --- Botón DELIVERED: marca el próximo paquete como entregado ---
-  const markDelivered = (stopId: number) => {
-    setPackages((prev) =>
-      prev.map((p) =>
-        p.routeStopId === stopId ? { ...p, delivered: true } : p
-      )
-    );
-    announcedRef.current.delete(stopId);
-  };
-
   const handleDelivered = () => {
     const target = routeState.nextPackage;
     if (!target) return;
-    markDelivered(target.stop.id);
+
+    setPackages((prev) =>
+      prev.map((p) =>
+        p.routeStopId === target.stop.id ? { ...p, delivered: true } : p
+      )
+    );
 
     // Avanzamos la posición de ruta hasta la parada entregada (si va por delante),
     // así "AFTER THAT" pasa a ser el nuevo "NEXT PACKAGE".
@@ -225,6 +183,8 @@ export default function App() {
       setCurrentIndex(deliveredIndex);
     }
 
+    // Permite que esa parada pueda volver a avisar si hiciera falta en el futuro.
+    announcedRef.current.delete(target.stop.id);
   };
 
   // --- Botón NEXT: avanzar manualmente una parada ---
@@ -250,33 +210,13 @@ export default function App() {
       if (exists) {
         return prev.filter((p) => p.routeStopId !== stopId);
       }
-      const stop = stops.find((item) => item.id === stopId);
-      const section = stop ? sectionForStop(organization, stop) : undefined;
-      return [...prev, {
-        routeStopId: stopId,
-        packageCount: 1,
-        delivered: false,
-        loaded: false,
-        trailerZone: section?.id,
-      }];
+      return [
+        ...prev,
+        { routeStopId: stopId, packageCount: 1, delivered: false },
+      ];
     });
     // Si estaba anunciada, permitir que vuelva a avisar.
     announcedRef.current.delete(stopId);
-  };
-
-  const handleToggleLoaded = (stopId: number) => {
-    setPackages((prev) => prev.map((pkg) =>
-      pkg.routeStopId === stopId ? { ...pkg, loaded: !pkg.loaded } : pkg
-    ));
-  };
-
-  const handleSaveOrganization = (next: OrganizationProfile) => {
-    setOrganization(next);
-    setPackages((prev) => prev.map((pkg) => {
-      const stop = stops.find((item) => item.id === pkg.routeStopId);
-      return { ...pkg, trailerZone: stop ? sectionForStop(next, stop)?.id : undefined };
-    }));
-    AsyncStorage.setItem(organizationKey(selectedRouteId), JSON.stringify(next)).catch(() => {});
   };
 
   // --- Contador de la lista: subir cantidad de paquetes (1 → 2 → 3 → 1) ---
@@ -341,11 +281,6 @@ export default function App() {
     closeDrawer();
   };
 
-  const openFeature = (mode: Exclude<ScreenMode, "map">) => {
-    setScreenMode(mode);
-    closeDrawer();
-  };
-
   const toggleSheet = () => {
     const target = sheetExpanded ? COLLAPSED_HEIGHT : expandedHeight;
     Animated.timing(sheetHeight, {
@@ -355,46 +290,6 @@ export default function App() {
     }).start();
     setSheetExpanded((v) => !v);
   };
-
-  if (screenMode === "organization") {
-    return (
-      <OrganizationScreen
-        routeName={activeRoute.name}
-        profile={organization}
-        stops={stops}
-        onSave={handleSaveOrganization}
-        onClose={() => setScreenMode("map")}
-      />
-    );
-  }
-
-  if (screenMode === "practice") {
-    return (
-      <PracticeScreen
-        routeName={activeRoute.name}
-        stops={stops}
-        profile={organization}
-        onClose={() => setScreenMode("map")}
-      />
-    );
-  }
-
-  if (screenMode === "loading") {
-    return (
-      <LoadingScreen
-        routeName={activeRoute.name}
-        stops={stops}
-        packages={packages}
-        profile={organization}
-        onToggleLoaded={handleToggleLoaded}
-        onClose={() => setScreenMode("map")}
-      />
-    );
-  }
-
-  const nextPackageZone = routeState.nextPackage
-    ? sectionForStop(organization, routeState.nextPackage.stop)?.id ?? null
-    : null;
 
   return (
     <SafeAreaView style={styles.root}>
@@ -418,32 +313,9 @@ export default function App() {
         </View>
 
         {/* Botón de menú (arriba izquierda) */}
-        <Pressable
-          style={styles.menuBtn}
-          onPress={openDrawer}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Ouvrir le menu"
-        >
+        <Pressable style={styles.menuBtn} onPress={openDrawer} hitSlop={8}>
           <Icon name="menu" size={24} color="#17181a" />
         </Pressable>
-
-        {missedPackage && (
-          <View style={styles.missedAlert}>
-            <View style={styles.missedTextWrap}>
-              <Text style={styles.missedTitle}>COLIS OUBLIÉ</Text>
-              <Text style={styles.missedAddress} numberOfLines={1}>
-                {missedPackage.stop.address} · {sectionForStop(organization, missedPackage.stop)?.id ?? "—"}
-              </Text>
-            </View>
-            <Pressable style={styles.missedSecondary} onPress={() => setCurrentIndex(missedPackage.index)}>
-              <Text style={styles.missedSecondaryText}>RETOUR</Text>
-            </Pressable>
-            <Pressable style={styles.missedPrimary} onPress={() => markDelivered(missedPackage.stop.id)}>
-              <Text style={styles.missedPrimaryText}>LIVRÉ</Text>
-            </Pressable>
-          </View>
-        )}
 
         {/* Panel deslizable desde abajo */}
         <Animated.View style={[styles.sheet, { height: sheetHeight }]}>
@@ -469,7 +341,6 @@ export default function App() {
             alertActive={alertActive}
             nextStopDistance={nextStopDistance}
             gpsInfo={gpsInfo}
-            nextPackageZone={nextPackageZone}
             onDelivered={handleDelivered}
             onNext={handleNext}
             onPrev={handlePrev}
@@ -506,23 +377,6 @@ export default function App() {
                   <Icon name="x" size={22} color="#6b7280" />
                 </Pressable>
               </View>
-
-              <View style={styles.drawerActions}>
-                <Pressable style={styles.drawerAction} onPress={() => openFeature("loading")}>
-                  <Icon name="package" size={20} color="#17181a" />
-                  <View><Text style={styles.drawerActionTitle}>Préparer le chargement</Text><Text style={styles.drawerActionSub}>Placer et confirmer les colis</Text></View>
-                </Pressable>
-                <Pressable style={styles.drawerAction} onPress={() => openFeature("practice")}>
-                  <Icon name="navigation" size={20} color="#17181a" />
-                  <View><Text style={styles.drawerActionTitle}>Mode entraînement</Text><Text style={styles.drawerActionSub}>Organiser des colis fictifs</Text></View>
-                </Pressable>
-                <Pressable style={styles.drawerAction} onPress={() => openFeature("organization")}>
-                  <Icon name="list" size={20} color="#17181a" />
-                  <View><Text style={styles.drawerActionTitle}>Mon organisation</Text><Text style={styles.drawerActionSub}>Secteurs et remorque</Text></View>
-                </Pressable>
-              </View>
-
-              <Text style={styles.drawerSectionLabel}>TOURNÉES</Text>
 
               {ROUTES.map((r) => {
                 const active = r.id === selectedRouteId;
@@ -672,24 +526,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#17181a",
   },
-  missedAlert: {
-    position: "absolute", top: 68, left: 12, right: 12, zIndex: 30,
-    flexDirection: "row", alignItems: "center", gap: 8,
-    backgroundColor: "#b91c1c", padding: 10, borderRadius: 12,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 7, elevation: 9,
-  },
-  missedTextWrap: { flex: 1 },
-  missedTitle: { color: "#fff", fontSize: 12, fontWeight: "900", letterSpacing: 0.8 },
-  missedAddress: { color: "#fff", fontSize: 13, fontWeight: "600", marginTop: 2 },
-  missedSecondary: { paddingHorizontal: 9, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.6)" },
-  missedSecondaryText: { color: "#fff", fontSize: 11, fontWeight: "900" },
-  missedPrimary: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: "#fff" },
-  missedPrimaryText: { color: "#991b1b", fontSize: 11, fontWeight: "900" },
-  drawerActions: { paddingHorizontal: 10, paddingVertical: 8, gap: 4 },
-  drawerAction: { flexDirection: "row", alignItems: "center", gap: 11, paddingHorizontal: 10, paddingVertical: 10, borderRadius: 10, backgroundColor: "#FFF6D6" },
-  drawerActionTitle: { fontSize: 14, fontWeight: "800", color: "#17181a" },
-  drawerActionSub: { fontSize: 11, color: "#6b7280", marginTop: 1 },
-  drawerSectionLabel: { fontSize: 10, fontWeight: "900", letterSpacing: 1, color: "#9ca3af", paddingHorizontal: 18, paddingTop: 8, paddingBottom: 4 },
   drawerRow: {
     flexDirection: "row",
     alignItems: "center",
