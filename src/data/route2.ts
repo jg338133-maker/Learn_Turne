@@ -37,8 +37,7 @@ export const ROUTE2_STOPS: RouteStop[] = [
   { id: 30, order: 30, address: "Route de Riaz 1B", latitude: 46.621563, longitude: 7.057813 }, // 📍 plus code
   { id: 31, order: 31, address: "Route de Riaz 1", latitude: 46.621188, longitude: 7.057938 }, // 📍 plus code
   { id: 32, order: 32, address: "Route de Riaz 2", latitude: 46.621274, longitude: 7.058526 },
-  { id: 33, order: 33, address: "Route de Riaz 4", latitude: 46.621548, longitude: 7.058409 },
-  { id: 34, order: 34, address: "Route de Riaz 6", latitude: 46.621359, longitude: 7.058397 },
+  { id: 33, order: 33, address: "Route de Riaz 4-6", latitude: 46.621454, longitude: 7.058403 }, // agrupadas (mismo punto de entrega)
   { id: 35, order: 35, address: "Route de Riaz 8", latitude: 46.621857, longitude: 7.05838 },
   { id: 36, order: 36, address: "Route de Riaz 14", latitude: 46.62192, longitude: 7.058984 },
   { id: 37, order: 37, address: "Route de Riaz 10", latitude: 46.621923, longitude: 7.058385 },
