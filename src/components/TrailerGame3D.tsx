@@ -9,7 +9,6 @@ type Props = {
   parcelLabel?: string;
   onPressSlot?: (sectionId: string) => void;
   disabled?: boolean;
-  hideSectionNames?: boolean;
 };
 
 export default function TrailerGame3D({
@@ -19,7 +18,6 @@ export default function TrailerGame3D({
   parcelLabel,
   onPressSlot,
   disabled = false,
-  hideSectionNames = false,
 }: Props) {
   const sections = new Map(profile.sections.map((section) => [section.id, section]));
   const rows = [profile.slotOrder.slice(0, 3), profile.slotOrder.slice(3, 6)];
@@ -47,9 +45,7 @@ export default function TrailerGame3D({
       >
         <View style={styles.slotTop} />
         <Text style={styles.slotId}>{id}</Text>
-        {!hideSectionNames && (
-          <Text style={styles.slotName} numberOfLines={2}>{section.name}</Text>
-        )}
+        <Text style={styles.slotName} numberOfLines={2}>{section.name}</Text>
         {selected && parcelLabel ? (
           <View style={[styles.parcel, wrong && styles.parcelWrong]}>
             <View style={styles.parcelTape} />

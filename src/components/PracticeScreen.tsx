@@ -85,7 +85,7 @@ export default function PracticeScreen({ routeName, stops, profile, onClose }: P
             title="Comment jouer ?"
             steps={[
               "Vérifiez que toutes les rues utiles sont réparties dans vos secteurs A1, A2, B1, B2, C1 et C2.",
-              "Choisissez une difficulté : Débutant affiche aussi le numéro d'ordre, Normal masque cet indice et Examen cache également les noms des rues dans les cases.",
+              "Choisissez une difficulté : Débutant affiche aussi le numéro d'ordre, Normal masque cet indice et Examen donne le résultat uniquement à la fin.",
               "Appuyez sur « Commencer la partie ». Une adresse et un colis fictif apparaissent.",
               "Touchez la case de la remorque où vous chargeriez réellement ce colis.",
               "Vert signifie que le placement est correct. Rouge indique votre choix et la bonne case s'allume en vert.",
@@ -97,7 +97,7 @@ export default function PracticeScreen({ routeName, stops, profile, onClose }: P
             {([
               ["debutant", "Débutant", "8 colis · correction immédiate"],
               ["normal", "Normal", "16 colis · correction immédiate"],
-              ["examen", "Examen", "24 colis · cases sans noms · résultat à la fin"],
+              ["examen", "Examen", "24 colis · résultat à la fin"],
             ] as const).map(([id, title, subtitle]) => (
               <Pressable
                 key={id}
@@ -112,7 +112,7 @@ export default function PracticeScreen({ routeName, stops, profile, onClose }: P
           <Pressable style={styles.primary} onPress={start}>
             <Text style={styles.primaryText}>COMMENCER LA PARTIE</Text>
           </Pressable>
-          <TrailerGame3D profile={profile} hideSectionNames={difficulty === "examen"} />
+          <TrailerGame3D profile={profile} />
         </View>
       </FeatureScreen>
     );
@@ -163,7 +163,6 @@ export default function PracticeScreen({ routeName, stops, profile, onClose }: P
           parcelLabel={`N° ${current.order}`}
           onPressSlot={choose}
           disabled={!!feedback}
-          hideSectionNames={difficulty === "examen"}
         />
         {!!feedback && (
           <View style={[styles.feedback, feedback.chosen === feedback.expected ? styles.correct : styles.wrong]}>
