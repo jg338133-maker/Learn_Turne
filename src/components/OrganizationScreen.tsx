@@ -11,6 +11,7 @@ import {
 import { OrganizationProfile, RouteStop } from "../types";
 import { streetNameFromAddress, validateProfile, withStreetAssignments } from "../utils/organization";
 import FeatureScreen from "./FeatureScreen";
+import InstructionCard from "./InstructionCard";
 import TrailerGrid from "./TrailerGrid";
 
 type Props = {
@@ -104,6 +105,18 @@ export default function OrganizationScreen({ routeName, profile, stops, onSave, 
   return (
     <FeatureScreen title="Mon organisation" subtitle={routeName} onClose={onClose}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <InstructionCard
+          title="Comment organiser votre tournée ?"
+          steps={[
+            "Touchez un secteur, par exemple A1. La liste de toutes les rues de la tournée s'ouvre dessous.",
+            "Cochez les rues que vous rangerez dans ce secteur. Toutes les adresses de la rue seront incluses automatiquement.",
+            "Une étiquette A1, B2, etc. signifie que la rue appartient déjà à un autre secteur.",
+            "Pour déplacer une rue, décochez-la d'abord dans son secteur actuel, puis cochez-la dans le nouveau.",
+            "Dans le plan de la remorque, touchez le secteur sélectionné puis la case de destination pour échanger leur position.",
+            "Terminez avec « Enregistrer l'organisation ». Le chargement et le jeu utiliseront immédiatement cette configuration.",
+          ]}
+          note="Une rue ne peut jamais appartenir à deux secteurs. L'application bloque les chevauchements et affiche une alerte."
+        />
         <Text style={styles.step}>1 · DIVISER LA TOURNÉE</Text>
         <Text style={styles.help}>
           Choisissez un secteur, puis sélectionnez les rues qui lui appartiennent.
@@ -168,7 +181,7 @@ export default function OrganizationScreen({ routeName, profile, stops, onSave, 
 
 const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 36 },
-  step: { fontSize: 13, fontWeight: "900", letterSpacing: 0.8, color: "#17181a", marginTop: 4 },
+  step: { fontSize: 13, fontWeight: "900", letterSpacing: 0.8, color: "#17181a", marginTop: 18 },
   help: { fontSize: 13, color: "#6b7280", marginTop: 5, marginBottom: 12 },
   sectionList: { gap: 6 },
   sectionRow: {

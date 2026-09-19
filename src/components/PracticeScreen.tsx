@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { OrganizationProfile, RouteStop } from "../types";
 import { sectionForStop } from "../utils/organization";
 import FeatureScreen from "./FeatureScreen";
+import InstructionCard from "./InstructionCard";
 import TrailerGame3D from "./TrailerGame3D";
 
 type Difficulty = "debutant" | "normal" | "examen";
@@ -74,6 +75,17 @@ export default function PracticeScreen({ routeName, stops, profile, onClose }: P
           <Text style={styles.help}>
             Des colis fictifs seront générés. Placez chaque adresse dans la bonne case de votre remorque.
           </Text>
+          <InstructionCard
+            title="Comment jouer ?"
+            steps={[
+              "Choisissez une difficulté : Débutant affiche aussi le numéro d'ordre, Normal masque cet indice et Examen donne le résultat uniquement à la fin.",
+              "Appuyez sur « Commencer la partie ». Une adresse et un colis fictif apparaissent.",
+              "Touchez la case de la remorque où vous chargeriez réellement ce colis.",
+              "Vert signifie que le placement est correct. Rouge indique votre choix et la bonne case s'allume en vert.",
+              "Appuyez sur « Suivant » jusqu'au résultat final.",
+            ]}
+            note="Le jeu utilise votre propre division des rues. Modifiez-la dans « Mon organisation » avant de vous entraîner."
+          />
           <View style={styles.levels}>
             {([
               ["debutant", "Débutant", "8 colis · correction immédiate"],
@@ -136,6 +148,7 @@ export default function PracticeScreen({ routeName, stops, profile, onClose }: P
           )}
         </View>
         <Text style={styles.question}>Dans quelle case le placeriez-vous ?</Text>
+        <Text style={styles.gameHint}>Lisez l'adresse, puis touchez directement une case de la remorque.</Text>
         <TrailerGame3D
           profile={profile}
           selectedId={feedback?.chosen}
@@ -176,6 +189,7 @@ const styles = StyleSheet.create({
   address: { fontSize: 23, fontWeight: "900", color: "#17181a", marginTop: 8 },
   order: { fontSize: 14, color: "#6b7280", marginTop: 5 },
   question: { fontSize: 16, fontWeight: "700", color: "#374151", textAlign: "center" },
+  gameHint: { marginTop: -10, fontSize: 12, lineHeight: 17, color: "#6b7280", textAlign: "center" },
   feedback: { borderRadius: 12, padding: 14, alignItems: "center" },
   correct: { backgroundColor: "#dcfce7" },
   wrong: { backgroundColor: "#fee2e2" },
