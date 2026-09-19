@@ -2,21 +2,21 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { RouteState } from "../utils/routeLogic";
 import { formatDistance } from "../utils/distance";
+import Icon from "./Icon";
 
 /**
- * Panel operativo COMPACTO.
+ * Panel operativo compacto y refinado.
  *
- * El recordatorio de "próximo paquete" ya no ocupa una caja grande: vive en la
- * lista (las direcciones con paquete salen en rojo). Aquí solo dejamos lo
- * imprescindible para repartir: dónde estás, el botón ENTREGADO (que además
- * indica el próximo paquete y su distancia) y la navegación por la ruta.
+ * El recordatorio de paquetes vive en la lista (direcciones en rojo). Aquí solo
+ * lo esencial: dónde estás, el botón ENTREGADO (con el próximo paquete) y la
+ * navegación por la ruta. Iconos de línea, sin emojis.
  */
 
 type Props = {
   routeState: RouteState;
   distanceToNextPackage: number | null;
-  alertActive: boolean; // true cuando estás cerca del próximo paquete
-  nextStopDistance: number | null; // distancia en línea recta a la próxima parada (m)
+  alertActive: boolean;
+  nextStopDistance: number | null;
   gpsInfo: string;
   onDelivered: () => void;
   onNext: () => void;
@@ -36,66 +36,81 @@ export default function DeliveryPanel({
   onNearest,
 }: Props) {
   const { currentStop, nextStop, nextPackage } = routeState;
-  const hasNav = nextStopDistance !== null;
 
   return (
     <View style={styles.panel}>
-      {/* Dos líneas de contexto muy compactas */}
-      <Text style={styles.line} numberOfLines={1}>
-        <Text style={styles.tag}>AHORA </Text>
-        {currentStop ? `${currentStop.order} · ${currentStop.address}` : "—"}
-      </Text>
-      <Text style={styles.line} numberOfLines={1}>
-        <Text style={styles.tag}>SIGUIENTE </Text>
-        {nextStop ? `${nextStop.order} · ${nextStop.address}` : "Fin de la ruta"}
-      </Text>
+      {/* Contexto: ahora / siguiente */}
+      <View style={styles.context}>
+        <View style={styles.contextRow}>
+          <Text style={styles.tag}>AHORA</Text>
+          <Text style={styles.contextValue} numberOfLines={1}>
+            {currentStop
+              ? `${currentStop.order} · ${currentStop.address}`
+              : "—"}
+          </Text>
+        </View>
+        <View style={styles.contextRow}>
+          <Text style={styles.tag}>SIGUE</Text>
+          <Text style={styles.contextValueMuted} numberOfLines={1}>
+            {nextStop ? `${nextStop.order} · ${nextStop.address}` : "Fin de la ruta"}
+            {nextStopDistance !== null ? `  ·  ${formatDistance(nextStopDistance)}` : ""}
+          </Text>
+        </View>
+      </View>
 
-      {/* Distancia a la próxima parada (se actualiza al moverte) */}
-      {hasNav && nextStop && (
-        <Text style={styles.navLine} numberOfLines={1}>
-          🧭 {formatDistance(nextStopDistance)} a la siguiente parada
-        </Text>
-      )}
-
-      {/* Botón de entrega: incorpora el recordatorio del próximo paquete */}
+      {/* Botón de entrega */}
       <TouchableOpacity
         style={[
-          styles.deliveredButton,
-          alertActive && styles.deliveredButtonAlert,
-          !nextPackage && styles.buttonDisabled,
+          styles.deliverBtn,
+          alertActive && styles.deliverBtnAlert,
+          !nextPackage && styles.deliverBtnDisabled,
         ]}
+        activeOpacity={0.85}
         onPress={onDelivered}
         disabled={!nextPackage}
       >
-        {nextPackage ? (
-          <>
-            <Text style={styles.buttonText}>ENTREGADO</Text>
-            <Text style={styles.buttonSub} numberOfLines={1}>
-              📦 {nextPackage.stop.order} · {nextPackage.stop.address} ·{" "}
-              {formatDistance(distanceToNextPackage)}
-              {alertActive ? "  ⚠️ CERCA" : ""}
-            </Text>
-          </>
-        ) : (
-          <Text style={styles.buttonText}>SIN PAQUETES 🎉</Text>
-        )}
+        <Icon name="check" size={22} color="#fff" strokeWidth={2.5} />
+        <View style={styles.deliverTextWrap}>
+          {nextPackage ? (
+            <>
+              <Text style={styles.deliverTitle}>ENTREGADO</Text>
+              <Text style={styles.deliverSub} numberOfLines={1}>
+                {nextPackage.stop.order} · {nextPackage.stop.address} ·{" "}
+                {formatDistance(distanceToNextPackage)}
+                {alertActive ? "  · cerca" : ""}
+              </Text>
+            </>
+          ) : (
+            <Text style={styles.deliverTitle}>Sin paquetes</Text>
+          )}
+        </View>
       </TouchableOpacity>
 
-      {/* Controles de navegación por la ruta */}
-      <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.navButton} onPress={onPrev}>
-          <Text style={styles.navButtonText}>◀</Text>
+      {/* Navegación por la ruta */}
+      <View style={styles.navRow}>
+        <TouchableOpacity
+          style={styles.navBtn}
+          activeOpacity={0.7}
+          onPress={onPrev}
+        >
+          <Icon name="chevron-left" size={22} color="#374151" />
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.navButton, styles.nearestButton]}
+          style={styles.nearestBtn}
+          activeOpacity={0.85}
           onPress={onNearest}
         >
-          <Text style={styles.navButtonText}>📍 CERCANA</Text>
+          <Icon name="map-pin" size={18} color="#fff" />
+          <Text style={styles.nearestText}>Más cercana</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.navButton} onPress={onNext}>
-          <Text style={styles.navButtonText}>▶</Text>
+        <TouchableOpacity
+          style={styles.navBtn}
+          activeOpacity={0.7}
+          onPress={onNext}
+        >
+          <Icon name="chevron-right" size={22} color="#374151" />
         </TouchableOpacity>
       </View>
 
@@ -108,81 +123,111 @@ export default function DeliveryPanel({
 
 const styles = StyleSheet.create({
   panel: {
-    paddingHorizontal: 14,
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 10,
     backgroundColor: "#ffffff",
   },
-  line: {
-    fontSize: 15,
-    color: "#343a40",
-    marginBottom: 2,
+  context: {
+    marginBottom: 12,
+  },
+  contextRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 3,
   },
   tag: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#adb5bd",
-    letterSpacing: 0.5,
-  },
-  navLine: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: "#7048e8",
-    marginTop: 2,
-  },
-  deliveredButton: {
-    marginTop: 8,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#2f9e44",
-  },
-  deliveredButtonAlert: {
-    backgroundColor: "#e8590c",
-  },
-  buttonDisabled: {
-    backgroundColor: "#adb5bd",
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "800",
+    width: 52,
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#9ca3af",
     letterSpacing: 1,
   },
-  buttonSub: {
-    color: "#eaffef",
-    fontSize: 13,
-    fontWeight: "700",
-    marginTop: 2,
-  },
-  buttonRow: {
-    flexDirection: "row",
-    marginTop: 8,
-    gap: 8,
-  },
-  navButton: {
+  contextValue: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#495057",
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#17181a",
   },
-  nearestButton: {
-    flex: 2,
-    backgroundColor: "#1c7ed6",
-  },
-  navButtonText: {
-    color: "#fff",
+  contextValueMuted: {
+    flex: 1,
     fontSize: 15,
+    fontWeight: "500",
+    color: "#6b7280",
+  },
+  deliverBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 16,
+    backgroundColor: "#16a34a",
+    shadowColor: "#16a34a",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  deliverBtnAlert: {
+    backgroundColor: "#ea580c",
+    shadowColor: "#ea580c",
+  },
+  deliverBtnDisabled: {
+    backgroundColor: "#cbd5e1",
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  deliverTextWrap: {
+    flex: 1,
+  },
+  deliverTitle: {
+    color: "#fff",
+    fontSize: 18,
     fontWeight: "800",
     letterSpacing: 0.5,
+  },
+  deliverSub: {
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 13,
+    fontWeight: "500",
+    marginTop: 1,
+  },
+  navRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 10,
+    marginTop: 12,
+  },
+  navBtn: {
+    width: 56,
+    paddingVertical: 12,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f3f4f6",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  nearestBtn: {
+    flex: 1,
+    flexDirection: "row",
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#2563eb",
+  },
+  nearestText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "700",
   },
   gpsInfo: {
     fontSize: 11,
-    color: "#ced4da",
-    marginTop: 6,
+    color: "#c2c7cf",
+    marginTop: 10,
     textAlign: "center",
   },
 });
