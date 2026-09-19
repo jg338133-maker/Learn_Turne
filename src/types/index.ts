@@ -18,15 +18,32 @@ export type RouteStop = {
   longitude: number;
 };
 
-/** Zona física dentro del remolque. Reservado para el futuro (NO se usa aún). */
-export type TrailerZone = "A" | "B" | "C";
+/** Identificador libre de un sector/espacio del remolque (A1, B2, etc.). */
+export type TrailerZone = string;
 
 /** Los paquetes que hay hoy en una parada concreta. */
 export type PackageStop = {
   routeStopId: number; // referencia a RouteStop.id
   packageCount: number;
   delivered: boolean;
-  trailerZone?: TrailerZone; // futuro: dónde está el paquete dentro del remolque
+  loaded?: boolean; // confirmado físicamente dentro del remolque
+  trailerZone?: TrailerZone;
+};
+
+/** Tramo configurable del recorrido y su ubicación física. */
+export type RouteSection = {
+  id: string;
+  name: string;
+  startOrder: number;
+  endOrder: number;
+};
+
+/** Perfil personal guardado independientemente para cada tournée. */
+export type OrganizationProfile = {
+  routeId: string;
+  sections: RouteSection[];
+  /** Posiciones: costado 2 izquierda→derecha y costado 1 izquierda→derecha. */
+  slotOrder: string[];
 };
 
 /** Un par latitud/longitud sencillo. */

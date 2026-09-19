@@ -18,6 +18,7 @@ type Props = {
   alertActive: boolean;
   nextStopDistance: number | null;
   gpsInfo: string;
+  nextPackageZone: string | null;
   onDelivered: () => void;
   onNext: () => void;
   onPrev: () => void;
@@ -30,6 +31,7 @@ export default function DeliveryPanel({
   alertActive,
   nextStopDistance,
   gpsInfo,
+  nextPackageZone,
   onDelivered,
   onNext,
   onPrev,
@@ -79,6 +81,7 @@ export default function DeliveryPanel({
               <Text style={styles.deliverSub} numberOfLines={1}>
                 {nextPackage.stop.order} · {nextPackage.stop.address} ·{" "}
                 {formatDistance(distanceToNextPackage)}
+                {nextPackageZone ? ` · ${nextPackageZone}` : ""}
                 {alertActive ? "  · proche" : ""}
               </Text>
             </>
