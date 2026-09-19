@@ -78,13 +78,13 @@ export default function PracticeScreen({ routeName, stops, profile, onClose }: P
           <View style={styles.prerequisite}>
             <Text style={styles.prerequisiteTitle}>AVANT DE JOUER</Text>
             <Text style={styles.prerequisiteText}>
-              Vous devez d'abord organiser la tournée dans « Mon organisation ». Créez les secteurs qui vous conviennent, attribuez les rues à chaque secteur et choisissez leur position dans la remorque. Le jeu reprendra exactement votre organisation personnelle.
+              Vous devez d'abord organiser la tournée dans « Mon organisation ». Divisez les adresses en secteurs continus dans l'ordre du parcours, puis choisissez leur position dans la remorque. Le jeu reprendra exactement votre organisation personnelle.
             </Text>
           </View>
           <InstructionCard
             title="Comment jouer ?"
             steps={[
-              "Vérifiez que toutes les rues utiles sont réparties dans vos secteurs A1, A2, B1, B2, C1 et C2.",
+              "Vérifiez que les adresses sont réparties dans l'ordre entre vos secteurs A1, A2, B1, B2, C1 et C2.",
               "Choisissez une difficulté : Débutant affiche aussi le numéro d'ordre, Normal masque cet indice et Examen cache également les noms des rues dans les cases.",
               "Appuyez sur « Commencer la partie ». Une adresse et un colis fictif apparaissent.",
               "Touchez la case de la remorque où vous chargeriez réellement ce colis.",

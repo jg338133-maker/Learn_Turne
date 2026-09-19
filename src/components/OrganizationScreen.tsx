@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { OrganizationProfile, RouteStop } from "../types";
-import { streetNameFromAddress, validateProfile, withStreetAssignments } from "../utils/organization";
+import { validateProfile, withStopAssignments } from "../utils/organization";
 import FeatureScreen from "./FeatureScreen";
 import InstructionCard from "./InstructionCard";
 import TrailerGrid from "./TrailerGrid";
@@ -24,10 +24,10 @@ type Props = {
 
 export default function OrganizationScreen({ routeName, profile, stops, onSave, onClose }: Props) {
   const [draft, setDraft] = useState<OrganizationProfile>(() => {
-    const migrated = withStreetAssignments(profile, stops);
+    const migrated = withStopAssignments(profile, stops);
     return {
     ...migrated,
-    sections: migrated.sections.map((section) => ({ ...section, streetNames: [...(section.streetNames ?? [])] })),
+    sections: migrated.sections.map((section) => ({ ...section, stopIds: [...(section.stopIds ?? [])] })),
     slotOrder: [...profile.slotOrder],
   }});
   const [selectedId, setSelectedId] = useState(profile.sections[0]?.id ?? null);
@@ -36,34 +36,44 @@ export default function OrganizationScreen({ routeName, profile, stops, onSave, 
     () => draft.sections.find((section) => section.id === selectedId),
     [draft.sections, selectedId]
   );
-  const streets = useMemo(() => {
-    const groups = new Map<string, RouteStop[]>();
-    for (const stop of stops) {
-      const street = streetNameFromAddress(stop.address);
-      groups.set(street, [...(groups.get(street) ?? []), stop]);
-    }
-    return [...groups.entries()].map(([name, addresses]) => ({ name, addresses }));
-  }, [stops]);
-  const ownerOf = (street: string) => draft.sections.find((section) => section.streetNames?.includes(street));
+  const orderedStops = useMemo(() => [...stops].sort((a, b) => a.order - b.order), [stops]);
+  const ownerOf = (stopId: number) => draft.sections.find((section) => section.stopIds?.includes(stopId));
 
-  const toggleStreet = (street: string) => {
+  const toggleStop = (stop: RouteStop) => {
     if (!selectedId) return;
-    const owner = ownerOf(street);
+    const owner = ownerOf(stop.id);
     if (owner && owner.id !== selectedId) {
-      const text = `La rue « ${street} » appartient déjà au secteur ${owner.id}. Retirez-la d'abord de ce secteur pour éviter un chevauchement.`;
+      const text = `L'adresse « ${stop.address} » appartient déjà au secteur ${owner.id}. Retirez-la d'abord de ce secteur.`;
       setMessage(text);
       Alert.alert("Chevauchement impossible", text);
       return;
     }
-    setMessage(null);
-    setDraft((current) => ({
-      ...current,
-      sections: current.sections.map((section) => section.id === selectedId
-        ? { ...section, streetNames: section.streetNames?.includes(street)
-            ? section.streetNames.filter((name) => name !== street)
-            : [...(section.streetNames ?? []), street] }
+    const next: OrganizationProfile = {
+      ...draft,
+      sections: draft.sections.map((section) => section.id === selectedId
+        ? { ...section, stopIds: section.stopIds?.includes(stop.id)
+            ? section.stopIds.filter((id) => id !== stop.id)
+            : [...(section.stopIds ?? []), stop.id] }
         : section),
-    }));
+    };
+    const error = validateProfile(next, orderedStops);
+    if (error) {
+      setMessage(error);
+      Alert.alert("Ordre incorrect", error);
+      return;
+    }
+    setMessage(null);
+    setDraft({
+      ...next,
+      sections: next.sections.map((section) => {
+        const assigned = orderedStops.filter((item) => section.stopIds?.includes(item.id));
+        return assigned.length ? {
+          ...section,
+          startOrder: assigned[0].order,
+          endOrder: assigned[assigned.length - 1].order,
+        } : section;
+      }),
+    });
   };
 
   const updateSelected = (patch: Partial<NonNullable<typeof selected>>) => {
@@ -93,7 +103,7 @@ export default function OrganizationScreen({ routeName, profile, stops, onSave, 
   };
 
   const save = () => {
-    const error = validateProfile(draft);
+    const error = validateProfile(draft, orderedStops);
     if (error) {
       setMessage(error);
       return;
@@ -108,18 +118,18 @@ export default function OrganizationScreen({ routeName, profile, stops, onSave, 
         <InstructionCard
           title="Comment organiser votre tournée ?"
           steps={[
-            "Touchez un secteur, par exemple A1. La liste de toutes les rues de la tournée s'ouvre dessous.",
-            "Cochez les rues que vous rangerez dans ce secteur. Toutes les adresses de la rue seront incluses automatiquement.",
-            "Une étiquette A1, B2, etc. signifie que la rue appartient déjà à un autre secteur.",
-            "Pour déplacer une rue, décochez-la d'abord dans son secteur actuel, puis cochez-la dans le nouveau.",
+            "Touchez un secteur, par exemple A1. La liste complète des adresses s'ouvre dans l'ordre de la tournée.",
+            "Cochez un bloc d'adresses consécutives. Vous pouvez couper un secteur au milieu d'une rue si cette rue réapparaît plus loin.",
+            "Une étiquette A1, B2, etc. signifie que l'adresse appartient déjà à un autre secteur.",
+            "Pour déplacer une limite, décochez d'abord l'adresse à l'extrémité du secteur actuel, puis cochez-la dans le secteur voisin.",
             "Dans le plan de la remorque, touchez le secteur sélectionné puis la case de destination pour échanger leur position.",
             "Terminez avec « Enregistrer l'organisation ». Le chargement et le jeu utiliseront immédiatement cette configuration.",
           ]}
-          note="Une rue ne peut jamais appartenir à deux secteurs. L'application bloque les chevauchements et affiche une alerte."
+          note="Les secteurs doivent suivre l'ordre A1 → A2 → B1 → B2 → C1 → C2. L'application bloque les trous, les doublons et les croisements."
         />
         <Text style={styles.step}>1 · DIVISER LA TOURNÉE</Text>
         <Text style={styles.help}>
-          Choisissez un secteur, puis sélectionnez les rues qui lui appartiennent.
+          Choisissez un secteur, puis sélectionnez un bloc continu d'adresses dans l'ordre.
         </Text>
         <View style={styles.sectionList}>
           {draft.sections.map((section) => (
@@ -130,7 +140,7 @@ export default function OrganizationScreen({ routeName, profile, stops, onSave, 
             >
               <Text style={styles.sectionId}>{section.id}</Text>
               <Text style={styles.sectionName} numberOfLines={1}>{section.name}</Text>
-              <Text style={styles.sectionRange}>{section.streetNames?.length ?? 0} rues</Text>
+              <Text style={styles.sectionRange}>{section.stopIds?.length ?? 0} adr. · {section.startOrder}–{section.endOrder}</Text>
             </Pressable>
           ))}
         </View>
@@ -144,18 +154,17 @@ export default function OrganizationScreen({ routeName, profile, stops, onSave, 
               onChangeText={(name) => updateSelected({ name })}
               placeholder="Nom du secteur"
             />
-            <Text style={styles.streetTitle}>RUES ET ADRESSES</Text>
-            {streets.map(({ name, addresses }) => {
-              const owner = ownerOf(name);
+            <Text style={styles.streetTitle}>ADRESSES DANS L'ORDRE DE LA TOURNÉE</Text>
+            {orderedStops.map((stop) => {
+              const owner = ownerOf(stop.id);
               const checked = owner?.id === selected.id;
               return (
-                <Pressable key={name} style={[styles.streetRow, checked && styles.streetRowChecked]} onPress={() => toggleStreet(name)}>
+                <Pressable key={stop.id} style={[styles.streetRow, checked && styles.streetRowChecked]} onPress={() => toggleStop(stop)}>
                   <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
                     <Text style={styles.checkmark}>{checked ? "✓" : ""}</Text>
                   </View>
                   <View style={styles.streetText}>
-                    <Text style={styles.streetName}>{name}</Text>
-                    <Text style={styles.addresses} numberOfLines={2}>{addresses.map((stop) => stop.address).join(" · ")}</Text>
+                    <Text style={styles.streetName}>{stop.order} · {stop.address}</Text>
                   </View>
                   {!!owner && owner.id !== selected.id && <Text style={styles.owner}>{owner.id}</Text>}
                 </Pressable>

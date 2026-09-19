@@ -40,6 +40,15 @@ function assignUniqueStreets(sections: RouteSection[], stops: RouteStop[]): Rout
   });
 }
 
+function assignStopsByRange(sections: RouteSection[], stops: RouteStop[]): RouteSection[] {
+  return sections.map((section) => ({
+    ...section,
+    stopIds: stops
+      .filter((stop) => stop.order >= section.startOrder && stop.order <= section.endOrder)
+      .map((stop) => stop.id),
+  }));
+}
+
 export function createDefaultProfile(
   routeId: string,
   stops: RouteStop[]
@@ -47,7 +56,7 @@ export function createDefaultProfile(
   if (routeId === "ruta-2") {
     return {
       routeId,
-      sections: assignUniqueStreets(ROUTE_136_SECTIONS, stops),
+      sections: assignStopsByRange(ROUTE_136_SECTIONS, stops),
       slotOrder: [...DEFAULT_SLOT_ORDER],
     };
   }
@@ -66,6 +75,7 @@ export function createDefaultProfile(
       startOrder: slice[0].order,
       endOrder: slice[slice.length - 1].order,
       streetNames: [...new Set(slice.map((stop) => streetNameFromAddress(stop.address)))],
+      stopIds: slice.map((stop) => stop.id),
     });
   }
   return { routeId, sections, slotOrder: DEFAULT_SLOT_ORDER.filter((id) => sections.some((s) => s.id === id)) };
@@ -84,12 +94,27 @@ export function sectionForStop(
   profile: OrganizationProfile,
   stop: RouteStop
 ): RouteSection | undefined {
+  const stopMode = profile.sections.some((section) => section.stopIds !== undefined);
+  if (stopMode) {
+    return profile.sections.find((section) => section.stopIds?.includes(stop.id));
+  }
   const street = streetNameFromAddress(stop.address);
   const streetMode = profile.sections.some((section) => section.streetNames !== undefined);
   if (streetMode) {
     return profile.sections.find((section) => section.streetNames?.includes(street));
   }
   return sectionForOrder(profile, stop.order);
+}
+
+export function withStopAssignments(
+  profile: OrganizationProfile,
+  stops: RouteStop[]
+): OrganizationProfile {
+  if (profile.sections.every((section) => section.stopIds !== undefined)) return profile;
+  return {
+    ...profile,
+    sections: assignStopsByRange(profile.sections, stops),
+  };
 }
 
 export function withStreetAssignments(
@@ -103,16 +128,29 @@ export function withStreetAssignments(
   };
 }
 
-export function validateProfile(profile: OrganizationProfile): string | null {
-  const owners = new Map<string, string>();
+export function validateProfile(profile: OrganizationProfile, stops: RouteStop[] = []): string | null {
+  const owners = new Map<number, string>();
+  const position = new Map(stops.map((stop, index) => [stop.id, index]));
+  let previousEnd = -1;
   for (const section of profile.sections) {
     if (!section.name.trim()) return `Le secteur ${section.id} n'a pas de nom.`;
-    for (const street of section.streetNames ?? []) {
-      const owner = owners.get(street);
+    const ids = section.stopIds ?? [];
+    for (const stopId of ids) {
+      const owner = owners.get(stopId);
       if (owner && owner !== section.id) {
-        return `La rue « ${street} » est présente dans ${owner} et ${section.id}.`;
+        return `Une adresse est présente dans ${owner} et ${section.id}.`;
       }
-      owners.set(street, section.id);
+      owners.set(stopId, section.id);
+    }
+    const indexes = ids.map((id) => position.get(id)).filter((value): value is number => value !== undefined).sort((a, b) => a - b);
+    if (indexes.length > 1 && indexes[indexes.length - 1] - indexes[0] + 1 !== indexes.length) {
+      return `Les adresses du secteur ${section.id} doivent être consécutives.`;
+    }
+    if (indexes.length) {
+      if (indexes[0] <= previousEnd) {
+        return `Le secteur ${section.id} croise le secteur précédent.`;
+      }
+      previousEnd = indexes[indexes.length - 1];
     }
   }
   return null;
