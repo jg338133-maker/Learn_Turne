@@ -76,10 +76,12 @@ export default function RouteMap({
 
     // Centro inicial: tu GPS, si no la 1ª parada, y si la ruta está vacía, Bulle.
     const start = userCoords ?? stops[0] ?? { latitude: 46.6163, longitude: 7.0575 };
-    const map = L.map(containerRef.current).setView(
+    const map = L.map(containerRef.current, { zoomControl: false }).setView(
       [start.latitude, start.longitude],
       16
     );
+    // Zoom a la derecha para no chocar con el botón de menú (izquierda).
+    L.control.zoom({ position: "topright" }).addTo(map);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap",
       maxZoom: 19,
