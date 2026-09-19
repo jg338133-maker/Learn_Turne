@@ -9,7 +9,7 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Usamos tu ubicación para mostrar tu posición en la ruta de reparto y avisarte cuando te acercas a una parada con paquetes."
+        "NSLocationWhenInUseUsageDescription": "Nous utilisons votre position pour afficher votre emplacement sur la tournée et vous prévenir à l approche d un arrêt avec des colis."
       }
     },
     "android": {
@@ -33,7 +33,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Usamos tu ubicación para mostrar tu posición en la ruta de reparto y avisarte cuando te acercas a una parada con paquetes."
+          "locationWhenInUsePermission": "Nous utilisons votre position pour afficher votre emplacement sur la tournée et vous prévenir à l approche d un arrêt avec des colis."
         }
       ]
     ]

@@ -30,7 +30,9 @@ export function useLocation(): LocationState {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") {
-          setErrorMsg("Permiso de ubicación denegado. Actívalo en Ajustes.");
+          setErrorMsg(
+            "Autorisation de localisation refusée. Activez-la dans les Réglages."
+          );
           return;
         }
         if (cancelled) return;
@@ -51,7 +53,7 @@ export function useLocation(): LocationState {
           }
         );
       } catch (e) {
-        setErrorMsg("No se pudo obtener la ubicación: " + String(e));
+        setErrorMsg("Impossible d'obtenir la localisation : " + String(e));
       }
     })();
 
