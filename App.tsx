@@ -316,6 +316,16 @@ export default function App() {
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const sheetHeight = useRef(new Animated.Value(COLLAPSED_HEIGHT)).current;
 
+  // Safari mobile peut terminer le layout de la carte après le premier rendu
+  // et laisser le panneau inférieur hors de la zone visible. Réappliquer sa
+  // hauteur lorsque la tournée enregistrée est prête garantit que les boutons
+  // de navigation sont présents dès l'ouverture, sans changer de tournée.
+  useEffect(() => {
+    if (!bootLoaded) return;
+    setSheetExpanded(false);
+    sheetHeight.setValue(COLLAPSED_HEIGHT);
+  }, [bootLoaded, selectedRouteId, sheetHeight]);
+
   // --- Menú lateral izquierdo (drawer) con las rutas ---
   const DRAWER_WIDTH = Math.min(320, Math.round(screenWidth * 0.82));
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -590,6 +600,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 12,
+    zIndex: 20,
   },
   handle: {
     alignItems: "center",
@@ -633,6 +644,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.22,
     shadowRadius: 6,
     elevation: 5,
+    zIndex: 30,
   },
   backdrop: {
     position: "absolute",
