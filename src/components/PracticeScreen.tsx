@@ -41,7 +41,8 @@ export default function PracticeScreen({ routeName, stops, profile, onClose }: P
   );
 
   const start = () => {
-    setTargets(randomStops(stops, COUNTS[difficulty]));
+    const playableStops = stops.filter((stop) => sectionForStop(profile, stop));
+    setTargets(randomStops(playableStops, COUNTS[difficulty]));
     setAnswers([]);
     setFeedback(null);
   };
@@ -70,7 +71,7 @@ export default function PracticeScreen({ routeName, stops, profile, onClose }: P
   if (!targets.length) {
     return (
       <FeatureScreen title="Mode entraînement" subtitle={routeName} onClose={onClose}>
-        <View style={styles.setup}>
+        <ScrollView contentContainerStyle={styles.setup}>
           <Text style={styles.hero}>Entraînez votre mémoire de chargement</Text>
           <Text style={styles.help}>
             Des colis fictifs seront générés. Placez chaque adresse dans la bonne case de votre remorque.
@@ -113,7 +114,7 @@ export default function PracticeScreen({ routeName, stops, profile, onClose }: P
             <Text style={styles.primaryText}>COMMENCER LA PARTIE</Text>
           </Pressable>
           <TrailerGame3D profile={profile} hideSectionNames={difficulty === "examen"} />
-        </View>
+        </ScrollView>
       </FeatureScreen>
     );
   }
