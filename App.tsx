@@ -326,6 +326,39 @@ export default function App() {
     sheetHeight.setValue(COLLAPSED_HEIGHT);
   }, [bootLoaded, selectedRouteId, sheetHeight]);
 
+  // La boîte de permission de Safari modifie temporairement le viewport. Une
+  // fois fermée, replacer le panneau avec la nouvelle hauteur visible évite
+  // qu'il reste sous la barre du navigateur jusqu'au prochain changement de
+  // tournée.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let restoreTimer: ReturnType<typeof setTimeout> | null = null;
+    const restoreSheet = () => {
+      if (restoreTimer) clearTimeout(restoreTimer);
+      restoreTimer = setTimeout(() => {
+        const visibleHeight = window.visualViewport?.height ?? window.innerHeight;
+        sheetHeight.setValue(
+          sheetExpanded ? Math.round(visibleHeight * 0.88) : COLLAPSED_HEIGHT
+        );
+      }, 180);
+    };
+    const restoreWhenVisible = () => {
+      if (document.visibilityState === "visible") restoreSheet();
+    };
+
+    window.addEventListener("focus", restoreSheet);
+    window.addEventListener("pageshow", restoreSheet);
+    window.visualViewport?.addEventListener("resize", restoreSheet);
+    document.addEventListener("visibilitychange", restoreWhenVisible);
+    return () => {
+      if (restoreTimer) clearTimeout(restoreTimer);
+      window.removeEventListener("focus", restoreSheet);
+      window.removeEventListener("pageshow", restoreSheet);
+      window.visualViewport?.removeEventListener("resize", restoreSheet);
+      document.removeEventListener("visibilitychange", restoreWhenVisible);
+    };
+  }, [sheetExpanded, sheetHeight]);
+
   // --- Menú lateral izquierdo (drawer) con las rutas ---
   const DRAWER_WIDTH = Math.min(320, Math.round(screenWidth * 0.82));
   const [drawerOpen, setDrawerOpen] = useState(false);
