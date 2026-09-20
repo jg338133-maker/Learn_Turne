@@ -65,6 +65,7 @@ export default function App() {
     createDefaultProfile(ROUTES[0].id, ROUTES[0].stops)
   );
   const [screenMode, setScreenMode] = useState<ScreenMode>("map");
+  const [showWelcome, setShowWelcome] = useState(true);
 
   // Flags de carga: bootLoaded = ya sabemos qué ruta estaba elegida;
   // packagesReady = ya cargamos los paquetes de la ruta actual (evita pisarlos).
@@ -372,6 +373,18 @@ export default function App() {
       useNativeDriver: false,
     }).start();
   };
+  const finishWelcome = () => {
+    setShowWelcome(false);
+    setSheetExpanded(false);
+    sheetHeight.setValue(COLLAPSED_HEIGHT);
+    if (typeof window !== "undefined") {
+      requestAnimationFrame(() => {
+        sheetHeight.setValue(COLLAPSED_HEIGHT);
+        window.dispatchEvent(new Event("resize"));
+        requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+      });
+    }
+  };
   const closeDrawer = () => {
     Animated.timing(drawerX, {
       toValue: -DRAWER_WIDTH,
@@ -489,7 +502,7 @@ export default function App() {
         )}
 
         {/* Panel deslizable desde abajo */}
-        <Animated.View style={[styles.sheet, { height: sheetHeight }]}>
+        {!showWelcome && <Animated.View style={[styles.sheet, { height: sheetHeight }]}>
           {/* Asa para desplegar/plegar */}
           <Pressable style={styles.handle} onPress={toggleSheet}>
             <View style={styles.grabber} />
@@ -531,7 +544,7 @@ export default function App() {
               onOpenMaps={handleOpenMaps}
             />
           </View>
-        </Animated.View>
+        </Animated.View>}
 
         {/* Menú lateral izquierdo (rutas) */}
         {drawerOpen && (
@@ -595,6 +608,28 @@ export default function App() {
               })}
             </Animated.View>
           </>
+        )}
+
+        {showWelcome && (
+          <View style={styles.welcomeOverlay}>
+            <View style={styles.welcomeCard}>
+              <View style={styles.welcomeIcon}>
+                <Icon name="navigation" size={28} color="#17181a" />
+              </View>
+              <Text style={styles.welcomeEyebrow}>LEARN TOURNÉE</Text>
+              <Text style={styles.welcomeTitle}>Prêt pour votre tournée ?</Text>
+              <Text style={styles.welcomeText}>
+                Autorisez la localisation si Safari vous le demande. Elle permet de vous situer sur le parcours et de trouver l'arrêt le plus proche.
+              </Text>
+              <Text style={styles.welcomeText}>
+                Appuyez ensuite sur « Suivant » pour charger la tournée et afficher tous les boutons de navigation.
+              </Text>
+              <Pressable style={styles.welcomeButton} onPress={finishWelcome}>
+                <Text style={styles.welcomeButtonText}>SUIVANT</Text>
+                <Icon name="chevron-right" size={20} color="#FFCC00" />
+              </Pressable>
+            </View>
+          </View>
         )}
       </View>
     </SafeAreaView>
@@ -679,6 +714,55 @@ const styles = StyleSheet.create({
     elevation: 5,
     zIndex: 30,
   },
+  welcomeOverlay: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 80,
+    backgroundColor: "rgba(17,24,39,0.62)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 22,
+  },
+  welcomeCard: {
+    width: "100%",
+    maxWidth: 430,
+    padding: 22,
+    borderRadius: 22,
+    backgroundColor: "#fff",
+    borderTopWidth: 7,
+    borderTopColor: "#FFCC00",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.28,
+    shadowRadius: 22,
+    elevation: 20,
+  },
+  welcomeIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 16,
+    backgroundColor: "#FFCC00",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  welcomeEyebrow: { fontSize: 11, fontWeight: "900", letterSpacing: 1.4, color: "#9ca3af" },
+  welcomeTitle: { marginTop: 6, fontSize: 25, lineHeight: 30, fontWeight: "900", color: "#17181a" },
+  welcomeText: { marginTop: 12, fontSize: 15, lineHeight: 21, color: "#4b5563" },
+  welcomeButton: {
+    marginTop: 20,
+    minHeight: 52,
+    borderRadius: 14,
+    backgroundColor: "#17181a",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 9,
+  },
+  welcomeButtonText: { color: "#FFCC00", fontSize: 15, fontWeight: "900", letterSpacing: 0.7 },
   backdrop: {
     position: "absolute",
     top: 0,
