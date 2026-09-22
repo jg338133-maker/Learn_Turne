@@ -66,6 +66,52 @@ function wheel(radius: number, position: [number, number, number]) {
   return group;
 }
 
+function cylinder(
+  radius: number,
+  length: number,
+  color: number,
+  position: [number, number, number],
+  rotation: [number, number, number] = [0, 0, 0]
+) {
+  const mesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius, radius, length, 20),
+    new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.35 })
+  );
+  mesh.position.set(...position);
+  mesh.rotation.set(...rotation);
+  mesh.castShadow = true;
+  return mesh;
+}
+
+function roundPart(radius: number, color: number, position: [number, number, number]) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(radius, 20, 14),
+    new THREE.MeshStandardMaterial({ color, roughness: 0.42, metalness: 0.15 })
+  );
+  mesh.position.set(...position);
+  mesh.castShadow = true;
+  return mesh;
+}
+
+function posteSprite(text: string) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 384;
+  canvas.height = 128;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#ffcc00";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#17181a";
+  ctx.font = "900 58px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture }));
+  sprite.scale.set(0.82, 0.28, 1);
+  return sprite;
+}
+
 function labelTexture(title: string, subtitle: string, hidden: boolean) {
   const canvas = document.createElement("canvas");
   canvas.width = 384;
@@ -101,12 +147,82 @@ function createVehicle(type: VehicleType) {
     group.add(wheel(0.42, [1.65, 0.48, 0.72]), wheel(0.42, [3.13, 0.48, 0.72]));
     group.add(wheel(0.42, [1.65, 0.48, -0.72]), wheel(0.42, [3.13, 0.48, -0.72]));
   } else {
-    group.add(box([1.55, 0.18, 0.32], COLORS.yellow, [2.55, 0.82, 0]));
-    group.add(box([0.55, 0.5, 0.62], COLORS.yellow, [2.02, 1.08, 0]));
-    group.add(box([0.55, 0.13, 0.5], COLORS.dark, [2.78, 1.36, 0]));
-    group.add(box([0.12, 1.05, 0.12], COLORS.dark, [3.1, 1.25, 0]));
-    group.add(box([0.66, 0.1, 0.1], COLORS.dark, [3.1, 1.75, 0]));
-    group.add(wheel(0.47, [1.95, 0.47, 0]), wheel(0.47, [3.3, 0.47, 0]));
+    // KYBURZ DXP 5: châssis trois roues, poste de conduite ouvert et grands
+    // coffres de distribution. Les proportions suivent les 215 × 80 × 122 cm
+    // du véhicule réel, adaptées à l'échelle de la scène.
+    group.add(box([2.35, 0.17, 0.78], 0xdda900, [2.42, 0.68, 0]));
+    group.add(box([1.42, 0.42, 0.72], COLORS.yellow, [2.27, 0.84, 0]));
+    group.add(box([0.74, 0.66, 0.68], COLORS.yellow, [3.18, 1.05, 0]));
+    group.add(box([0.8, 0.12, 0.66], 0x20272c, [2.62, 1.03, 0]));
+
+    // Coffre arrière principal, couvercle et logo postal.
+    group.add(box([0.98, 1.12, 1.12], 0x3f4a52, [1.45, 1.34, 0]));
+    group.add(box([1.04, 0.12, 1.17], 0x69757d, [1.45, 1.96, 0]));
+    const rearLogo = posteSprite("POSTE");
+    rearLogo.position.set(1.45, 1.43, 0.575);
+    rearLogo.scale.set(0.72, 0.24, 1);
+    group.add(rearLogo);
+
+    // Siège, dossier, repose-pieds et colonne de direction.
+    group.add(box([0.64, 0.15, 0.58], 0x202428, [2.36, 1.27, 0]));
+    const backrest = box([0.18, 0.64, 0.58], 0x202428, [2.08, 1.56, 0]);
+    backrest.rotation.z = -0.12;
+    group.add(backrest);
+    group.add(box([0.74, 0.08, 0.62], 0x3a4248, [2.82, 0.94, 0]));
+    const steering = cylinder(0.055, 0.9, 0x242b30, [2.97, 1.48, 0], [0, 0, -0.18]);
+    group.add(steering);
+    group.add(cylinder(0.05, 0.82, 0x202428, [3.05, 1.88, 0], [Math.PI / 2, 0, 0]));
+
+    // Pare-brise teinté avec supports métalliques.
+    const windscreen = new THREE.Mesh(
+      new THREE.BoxGeometry(0.055, 0.72, 0.94),
+      new THREE.MeshPhysicalMaterial({
+        color: 0xb8d6df,
+        transparent: true,
+        opacity: 0.42,
+        roughness: 0.08,
+        metalness: 0.05,
+        clearcoat: 1,
+        clearcoatRoughness: 0.1,
+      })
+    );
+    windscreen.position.set(3.12, 1.74, 0);
+    windscreen.rotation.z = -0.14;
+    group.add(windscreen);
+    group.add(cylinder(0.025, 0.82, 0x4b5563, [3.1, 1.72, 0.49], [0, 0, -0.14]));
+    group.add(cylinder(0.025, 0.82, 0x4b5563, [3.1, 1.72, -0.49], [0, 0, -0.14]));
+
+    // Coffre avant, phare, clignotants et rétroviseurs.
+    group.add(box([0.68, 0.62, 0.82], COLORS.yellow, [3.42, 1.5, 0]));
+    group.add(box([0.72, 0.1, 0.86], 0xffdc3f, [3.42, 1.84, 0]));
+    const frontLogo = posteSprite("POSTE");
+    frontLogo.position.set(3.765, 1.51, 0);
+    frontLogo.scale.set(0.34, 0.15, 1);
+    frontLogo.material.rotation = -Math.PI / 2;
+    group.add(frontLogo);
+    const headlight = roundPart(0.13, 0xf8fafc, [3.58, 1.02, 0]);
+    (headlight.material as THREE.MeshStandardMaterial).emissive.setHex(0xfff4bf);
+    (headlight.material as THREE.MeshStandardMaterial).emissiveIntensity = 1.1;
+    group.add(headlight);
+    group.add(roundPart(0.055, 0xff8a00, [3.53, 1.19, 0.37]));
+    group.add(roundPart(0.055, 0xff8a00, [3.53, 1.19, -0.37]));
+    group.add(cylinder(0.025, 0.5, 0x252b30, [3.02, 2.08, 0.42], [0, 0, 0.55]));
+    group.add(cylinder(0.025, 0.5, 0x252b30, [3.02, 2.08, -0.42], [0, 0, 0.55]));
+    group.add(roundPart(0.095, 0x202428, [2.9, 2.25, 0.55]));
+    group.add(roundPart(0.095, 0x202428, [2.9, 2.25, -0.55]));
+
+    // Train roulant à trois roues: deux roues arrière pour la stabilité et une
+    // roue directrice à l'avant, caractéristique du DXP.
+    group.add(wheel(0.43, [1.77, 0.47, 0.5]));
+    group.add(wheel(0.43, [1.77, 0.47, -0.5]));
+    group.add(wheel(0.47, [3.36, 0.47, 0]));
+    group.add(box([0.38, 0.13, 0.74], COLORS.yellow, [1.78, 0.82, 0]));
+    group.add(box([0.48, 0.12, 0.3], COLORS.yellow, [3.34, 0.82, 0]));
+
+    // Feux arrière et plaque, visibles en faisant tourner le modèle.
+    group.add(box([0.08, 0.16, 0.2], 0xdc2626, [0.94, 0.9, 0.37]));
+    group.add(box([0.08, 0.16, 0.2], 0xdc2626, [0.94, 0.9, -0.37]));
+    group.add(box([0.07, 0.22, 0.38], 0xf8fafc, [0.92, 0.73, 0]));
   }
   return group;
 }
@@ -198,6 +314,8 @@ export default function TrailerGame3D({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
     renderer.domElement.style.width = "100%";
     renderer.domElement.style.height = "100%";
     renderer.domElement.style.display = "block";
@@ -214,6 +332,11 @@ export default function TrailerGame3D({
     const sun = new THREE.DirectionalLight(0xffffff, 3.1);
     sun.position.set(4, 8, 7);
     sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.camera.left = -7;
+    sun.shadow.camera.right = 7;
+    sun.shadow.camera.top = 7;
+    sun.shadow.camera.bottom = -7;
     scene.add(sun);
 
     const floor = new THREE.Mesh(
@@ -223,6 +346,11 @@ export default function TrailerGame3D({
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     scene.add(floor);
+    const grid = new THREE.GridHelper(24, 24, 0xffffff, 0xaeb8be);
+    grid.position.y = 0.012;
+    (grid.material as THREE.Material).transparent = true;
+    (grid.material as THREE.Material).opacity = 0.28;
+    scene.add(grid);
 
     const vehicleRoot = new THREE.Group();
     const slots = new Map<string, THREE.Mesh>();
@@ -339,7 +467,7 @@ export default function TrailerGame3D({
   return (
     <div style={rootStyle}>
       <div ref={hostRef} style={canvasHostStyle} aria-label="Simulateur 3D de chargement" />
-      <div style={badgeStyle}>● SIMULATEUR 3D · {vehicleType === "moto" ? "MOTO" : "VOITURE"}</div>
+      <div style={badgeStyle}>● SIMULATEUR 3D · {vehicleType === "moto" ? "KYBURZ DXP5" : "VOITURE"}</div>
       <div style={hintStyle}>Glissez pour tourner · touchez une case</div>
       <div style={zoomStyle}>
         <button type="button" aria-label="Rapprocher la caméra" onClick={() => zoom(0.88)} style={zoomButtonStyle}>＋</button>

@@ -100,7 +100,7 @@ export default function PracticeScreen({ routeName, stops, profile, onClose }: P
           <Text style={styles.selectorTitle}>VÉHICULE</Text>
           <View style={styles.vehicleRow}>
             {([[
-              "moto", "Moto électrique", "Remorque latérale"
+              "moto", "KYBURZ DXP5", "Véhicule postal électrique"
             ], [
               "voiture", "Voiture", "Véhicule de livraison"
             ]] as const).map(([id, title, subtitle]) => (
