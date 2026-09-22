@@ -7,6 +7,7 @@ import InstructionCard from "./InstructionCard";
 import TrailerGame3D from "./TrailerGame3D";
 
 type Difficulty = "debutant" | "normal" | "examen";
+type VehicleType = "voiture" | "moto";
 type Answer = { stop: RouteStop; chosenId: string; expectedId: string };
 
 type Props = {
@@ -29,6 +30,7 @@ function randomStops(stops: RouteStop[], count: number): RouteStop[] {
 
 export default function PracticeScreen({ routeName, stops, profile, onClose }: Props) {
   const [difficulty, setDifficulty] = useState<Difficulty>("debutant");
+  const [vehicleType, setVehicleType] = useState<VehicleType>("moto");
   const [targets, setTargets] = useState<RouteStop[]>([]);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [feedback, setFeedback] = useState<{ chosen: string; expected: string } | null>(null);
@@ -87,13 +89,32 @@ export default function PracticeScreen({ routeName, stops, profile, onClose }: P
             steps={[
               "Vérifiez que les adresses sont réparties dans l'ordre entre vos secteurs A1, A2, B1, B2, C1 et C2.",
               "Choisissez une difficulté : Débutant affiche aussi le numéro d'ordre, Normal masque cet indice et Examen cache également les noms des rues dans les cases.",
+              "Choisissez le véhicule à entraîner : voiture de livraison ou moto électrique avec remorque.",
               "Appuyez sur « Commencer la partie ». Une adresse et un colis fictif apparaissent.",
-              "Touchez la case de la remorque où vous chargeriez réellement ce colis.",
+              "Faites glisser le modèle pour le tourner, puis touchez la case où vous chargeriez réellement ce colis.",
               "Vert signifie que le placement est correct. Rouge indique votre choix et la bonne case s'allume en vert.",
               "Appuyez sur « Suivant » jusqu'au résultat final.",
             ]}
             note="Il n'existe pas une seule bonne division : utilisez les secteurs qui correspondent à votre façon réelle de charger et de mémoriser la tournée."
           />
+          <Text style={styles.selectorTitle}>VÉHICULE</Text>
+          <View style={styles.vehicleRow}>
+            {([[
+              "moto", "Moto électrique", "Remorque latérale"
+            ], [
+              "voiture", "Voiture", "Véhicule de livraison"
+            ]] as const).map(([id, title, subtitle]) => (
+              <Pressable
+                key={id}
+                style={[styles.vehicleOption, vehicleType === id && styles.vehicleOptionSelected]}
+                onPress={() => setVehicleType(id)}
+              >
+                <Text style={styles.vehicleTitle}>{title}</Text>
+                <Text style={styles.vehicleSubtitle}>{subtitle}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={styles.selectorTitle}>DIFFICULTÉ</Text>
           <View style={styles.levels}>
             {([
               ["debutant", "Débutant", "8 colis · correction immédiate"],
@@ -113,7 +134,7 @@ export default function PracticeScreen({ routeName, stops, profile, onClose }: P
           <Pressable style={styles.primary} onPress={start}>
             <Text style={styles.primaryText}>COMMENCER LA PARTIE</Text>
           </Pressable>
-          <TrailerGame3D profile={profile} hideSectionNames={difficulty === "examen"} />
+          <TrailerGame3D profile={profile} hideSectionNames={difficulty === "examen"} vehicleType={vehicleType} />
         </ScrollView>
       </FeatureScreen>
     );
@@ -165,6 +186,7 @@ export default function PracticeScreen({ routeName, stops, profile, onClose }: P
           onPressSlot={choose}
           disabled={!!feedback}
           hideSectionNames={difficulty === "examen"}
+          vehicleType={vehicleType}
         />
         {!!feedback && (
           <View style={[styles.feedback, feedback.chosen === feedback.expected ? styles.correct : styles.wrong]}>
@@ -190,6 +212,12 @@ const styles = StyleSheet.create({
   prerequisiteTitle: { color: "#FFCC00", fontSize: 12, fontWeight: "900", letterSpacing: 1 },
   prerequisiteText: { color: "#fff", fontSize: 14, lineHeight: 20, marginTop: 6, fontWeight: "600" },
   levels: { gap: 8 },
+  selectorTitle: { marginTop: 4, fontSize: 12, fontWeight: "900", letterSpacing: 1, color: "#6b7280" },
+  vehicleRow: { flexDirection: "row", gap: 9 },
+  vehicleOption: { flex: 1, minHeight: 76, padding: 12, borderRadius: 12, backgroundColor: "#fff", borderWidth: 1, borderColor: "#e5e7eb" },
+  vehicleOptionSelected: { backgroundColor: "#FFF6D6", borderColor: "#17181a", borderWidth: 2 },
+  vehicleTitle: { fontSize: 14, fontWeight: "900", color: "#17181a" },
+  vehicleSubtitle: { marginTop: 4, fontSize: 11, lineHeight: 15, color: "#6b7280" },
   level: { padding: 13, borderRadius: 12, backgroundColor: "#fff", borderWidth: 1, borderColor: "#e5e7eb" },
   levelSelected: { backgroundColor: "#FFF6D6", borderColor: "#17181a", borderWidth: 2 },
   levelTitle: { fontSize: 16, fontWeight: "800", color: "#17181a" },

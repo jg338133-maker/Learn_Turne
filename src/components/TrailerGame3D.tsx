@@ -10,6 +10,7 @@ type Props = {
   onPressSlot?: (sectionId: string) => void;
   disabled?: boolean;
   hideSectionNames?: boolean;
+  vehicleType?: "voiture" | "moto";
 };
 
 export default function TrailerGame3D({
